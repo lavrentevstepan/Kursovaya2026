@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>OWASP Dependency-Check Report | SecureKnowledgeBase</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b1120; color: #f8fafc; margin: 0; padding: 24px; }
+        .container { max-width: 1200px; margin: 0 auto; background: #1e293b; border-radius: 8px; padding: 24px; border: 1px solid #334155; }
+        h1 { color: #38bdf8; margin-top: 0; }
+        .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .meta-card { background: #0f172a; padding: 14px; border-radius: 6px; border: 1px solid #334155; }
+        .meta-label { font-size: 12px; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
+        .meta-value { font-size: 18px; font-weight: bold; margin-top: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+        th { background: #0f172a; padding: 12px; text-align: left; color: #94a3b8; border-bottom: 2px solid #334155; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>OWASP Dependency-Check Report</h1>
+        <p style="color:#94a3b8;">Отчет анализа состава программного обеспечения (SCA) для проекта SecureKnowledgeBase (Вариант 25)</p>
+        <div class="meta-grid">
+            <div class="meta-card">
+                <div class="meta-label">Статус Quality Gate</div>
+                <div class="meta-value" style="color:#10b981;">PASSED (Quality Gate Satisfied)</div>
+            </div>
+            <div class="meta-card">
+                <div class="meta-label">Проверено компонентов</div>
+                <div class="meta-value">4</div>
+            </div>
+            <div class="meta-card">
+                <div class="meta-label">Найдено уязвимостей</div>
+                <div class="meta-value" style="color:#10b981;">0</div>
+            </div>
+            <div class="meta-card">
+                <div class="meta-label">Максимальный балл CVSS</div>
+                <div class="meta-value" style="color:#10b981;">0</div>
+            </div>
+        </div>
+        <h2>Обнаруженные Уязвимости Зависимостей</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Проект</th>
+                    <th>Пакет</th>
+                    <th>CVE</th>
+                    <th>Критичность (CVSS)</th>
+                    <th>CWE</th>
+                    <th>Описание и Рекомендация</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan='6' style='text-align:center;color:#10b981;font-weight:bold;padding:16px;'>Уязвимости сторонних компонентов не обнаружены. Все пакеты соответствуют актуальным базам NVD.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

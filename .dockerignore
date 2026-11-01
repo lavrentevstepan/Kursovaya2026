@@ -1,0 +1,16 @@
+**/.git
+**/.gitignore
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/app_data/storage/*
+**/app_data/*.db
+**/app_data/*.db-shm
+**/app_data/*.db-wal
+**/reports
+**/deploy
+**/docs
+**/*.md
+**/*.ps1
+**/*.sh

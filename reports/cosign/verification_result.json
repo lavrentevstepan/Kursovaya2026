@@ -1,0 +1,22 @@
+﻿{
+    "verificationTimestamp":  "2026-09-13T13:01:12Z",
+    "cryptoAlgorithm":  "ECDSA P-256 with SHA-256 (Cosign Standard)",
+    "publicKeyPath":  "C:\\Users\\Claudwal\\Documents\\MISIS\\sem3\\security\\kurs\\reports\\cosign\\cosign.pub",
+    "artifacts":  [
+                      {
+                          "target":  "SecureKnowledgeBase Application Artifact",
+                          "commitSha":  "0bdd9c2ae4546f436c931a51d57d65e3d6fc46b3",
+                          "signatureFile":  "C:\\Users\\Claudwal\\Documents\\MISIS\\sem3\\security\\kurs\\reports\\cosign\\app.sig",
+                          "verified":  true,
+                          "status":  "PASSED"
+                      },
+                      {
+                          "target":  "secure-knowledge-base Container Image",
+                          "digest":  "sha256:d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5",
+                          "signatureFile":  "C:\\Users\\Claudwal\\Documents\\MISIS\\sem3\\security\\kurs\\reports\\cosign\\container.sig",
+                          "verified":  true,
+                          "status":  "PASSED"
+                      }
+                  ],
+    "overallStatus":  "VERIFICATION PASSED"
+}

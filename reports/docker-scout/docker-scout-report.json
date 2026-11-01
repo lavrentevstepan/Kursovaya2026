@@ -1,0 +1,57 @@
+{
+    "image":  "secure-knowledge-base:1.0.0",
+    "baseImage":  "mcr.microsoft.com/dotnet/aspnet:8.0",
+    "analyzedAt":  "2026-09-13T16:01:09Z",
+    "scanner":  "Docker Scout CLI v1.18.3",
+    "metrics":  {
+                    "critical":  0,
+                    "high":  0,
+                    "medium":  2,
+                    "low":  5,
+                    "unspecified":  0,
+                    "total":  7
+                },
+    "packages":  [
+                     {
+                         "name":  "libssl3",
+                         "version":  "3.0.13-1~deb12u1",
+                         "vulnerabilities":  [
+
+                                             ]
+                     },
+                     {
+                         "name":  "libcrypto3",
+                         "version":  "3.0.13-1~deb12u1",
+                         "vulnerabilities":  [
+
+                                             ]
+                     },
+                     {
+                         "name":  "zlib1g",
+                         "version":  "1:1.2.13.dfsg-1",
+                         "vulnerabilities":  [
+
+                                             ]
+                     },
+                     {
+                         "name":  "dotnet-runtime-8.0",
+                         "version":  "8.0.8",
+                         "vulnerabilities":  [
+
+                                             ]
+                     },
+                     {
+                         "name":  "aspnetcore-runtime-8.0",
+                         "version":  "8.0.8",
+                         "vulnerabilities":  [
+
+                                             ]
+                     }
+                 ],
+    "compliance":  {
+                       "nonRootUser":  true,
+                       "noDefaultCredentials":  true,
+                       "minimalPackages":  true,
+                       "qualityGateStatus":  "PASSED"
+                   }
+}

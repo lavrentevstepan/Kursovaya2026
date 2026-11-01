@@ -1,0 +1,67 @@
+{
+    "reportSchema":  "1.1",
+    "scanInfo":  {
+                     "engineVersion":  "8.4.0",
+                     "dataSource":  "National Vulnerability Database (NVD) \u0026 GitHub Advisory",
+                     "scanDate":  "2026-09-13T16:01:05Z",
+                     "target":  "C:\\Users\\Claudwal\\Documents\\MISIS\\sem3\\security\\kurs\\src"
+                 },
+    "dependencies":  [
+                         {
+                             "fileName":  "Microsoft.EntityFrameworkCore.Sqlite.8.0.11.nupkg",
+                             "filePath":  "SecureKnowledgeBase.Infrastructure.csproj -\u003e Microsoft.EntityFrameworkCore.Sqlite",
+                             "description":  "NuGet package Microsoft.EntityFrameworkCore.Sqlite version 8.0.11",
+                             "packages":  [
+                                              {
+                                                  "id":  "pkg:nuget/Microsoft.EntityFrameworkCore.Sqlite@8.0.11",
+                                                  "confidence":  "HIGHEST"
+                                              }
+                                          ],
+                             "vulnerabilities":  [
+
+                                                 ]
+                         },
+                         {
+                             "fileName":  "Microsoft.Extensions.Http.8.0.1.nupkg",
+                             "filePath":  "SecureKnowledgeBase.Infrastructure.csproj -\u003e Microsoft.Extensions.Http",
+                             "description":  "NuGet package Microsoft.Extensions.Http version 8.0.1",
+                             "packages":  [
+                                              {
+                                                  "id":  "pkg:nuget/Microsoft.Extensions.Http@8.0.1",
+                                                  "confidence":  "HIGHEST"
+                                              }
+                                          ],
+                             "vulnerabilities":  [
+
+                                                 ]
+                         },
+                         {
+                             "fileName":  "Microsoft.Extensions.Options.ConfigurationExtensions.8.0.0.nupkg",
+                             "filePath":  "SecureKnowledgeBase.Infrastructure.csproj -\u003e Microsoft.Extensions.Options.ConfigurationExtensions",
+                             "description":  "NuGet package Microsoft.Extensions.Options.ConfigurationExtensions version 8.0.0",
+                             "packages":  [
+                                              {
+                                                  "id":  "pkg:nuget/Microsoft.Extensions.Options.ConfigurationExtensions@8.0.0",
+                                                  "confidence":  "HIGHEST"
+                                              }
+                                          ],
+                             "vulnerabilities":  [
+
+                                                 ]
+                         },
+                         {
+                             "fileName":  "PdfPig.0.1.16.nupkg",
+                             "filePath":  "SecureKnowledgeBase.Infrastructure.csproj -\u003e PdfPig",
+                             "description":  "NuGet package PdfPig version 0.1.16",
+                             "packages":  [
+                                              {
+                                                  "id":  "pkg:nuget/PdfPig@0.1.16",
+                                                  "confidence":  "HIGHEST"
+                                              }
+                                          ],
+                             "vulnerabilities":  [
+
+                                                 ]
+                         }
+                     ]
+}

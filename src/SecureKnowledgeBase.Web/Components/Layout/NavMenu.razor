@@ -1,0 +1,71 @@
+@rendermode InteractiveServer
+@inject NavigationManager NavigationManager
+
+<div class="nav-container">
+    <div class="brand">
+        <div class="brand-logo">SKB</div>
+        <div class="brand-info">
+            <span class="brand-title">SecureKB</span>
+            <span class="brand-sub">DevSecOps • Вариант 25</span>
+        </div>
+    </div>
+
+    <nav class="nav-links">
+        <NavLink class="nav-item" href="" Match="NavLinkMatch.All">
+            <span class="nav-icon">📊</span>
+            <span>Дашборд</span>
+        </NavLink>
+        <NavLink class="nav-item" href="status">
+            <span class="nav-icon">🩺</span>
+            <span>Состояние сервисов</span>
+        </NavLink>
+        <NavLink class="nav-item" href="documents">
+            <span class="nav-icon">📁</span>
+            <span>Документы</span>
+        </NavLink>
+        <NavLink class="nav-item" href="search">
+            <span class="nav-icon">🔍</span>
+            <span>Поиск по базе</span>
+        </NavLink>
+
+        <NavLink class="nav-item" href="assistant">
+            <span class="nav-icon">🤖</span>
+            <span>RAG-Ассистент</span>
+        </NavLink>
+        <NavLink class="nav-item" href="audit">
+            <span class="nav-icon">🛡️</span>
+            <span>Журнал аудита</span>
+        </NavLink>
+        <NavLink class="nav-item" href="security-lab">
+            <span class="nav-icon">🧪</span>
+            <span>Лаборатория уязвимостей</span>
+        </NavLink>
+        <NavLink class="nav-item" href="login">
+            <span class="nav-icon">🔐</span>
+            <span>Авторизация</span>
+        </NavLink>
+    </nav>
+
+    <div class="nav-footer">
+        <div class="env-pill">Локальный режим (Win11)</div>
+        <div class="version-text" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span>v1.0.0 • Вариант 25</span>
+            <button class="footer-info-btn-sm" @onclick="HandleOpenStats" title="Паспорт проекта и статистика кодовой базы" aria-label="Информация о проекте">
+                ℹ️
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback OnOpenStats { get; set; }
+
+    private async Task HandleOpenStats()
+    {
+        if (OnOpenStats.HasDelegate)
+        {
+            await OnOpenStats.InvokeAsync();
+        }
+    }
+}

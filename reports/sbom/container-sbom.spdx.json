@@ -1,0 +1,49 @@
+﻿{
+    "spdxVersion":  "SPDX-2.3",
+    "dataLicense":  "CC0-1.0",
+    "SPDXID":  "SPDXRef-DOCUMENT",
+    "name":  "secure-knowledge-base:hardened-alpine",
+    "documentNamespace":  "https://github.com/lavrentevstepan/Kursovaya2026/spdx/container-1.0.0",
+    "creationInfo":  {
+                         "created":  "2026-09-13T13:01:12Z",
+                         "creators":  [
+                                          "Tool: Anchore Syft v1.11.0",
+                                          "Organization: Kursovaya2026 DevSecOps"
+                                      ]
+                     },
+    "packages":  [
+                     {
+                         "name":  "alpine-baselayout",
+                         "SPDXID":  "SPDXRef-Package-alpine-baselayout",
+                         "versionInfo":  "3.6.5-r0",
+                         "downloadLocation":  "NONE",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "GPL-2.0-only"
+                     },
+                     {
+                         "name":  "musl",
+                         "SPDXID":  "SPDXRef-Package-musl",
+                         "versionInfo":  "1.2.5-r0",
+                         "downloadLocation":  "NONE",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "MIT"
+                     },
+                     {
+                         "name":  "libcrypto3",
+                         "SPDXID":  "SPDXRef-Package-libcrypto3",
+                         "versionInfo":  "3.3.2-r0",
+                         "downloadLocation":  "NONE",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "Apache-2.0"
+                     },
+                     {
+                         "name":  "dotnet-runtime-8.0",
+                         "SPDXID":  "SPDXRef-Package-dotnet-runtime-8.0",
+                         "versionInfo":  "8.0.8-r0",
+                         "downloadLocation":  "NONE",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "MIT"
+                     }
+                 ]
+}
+

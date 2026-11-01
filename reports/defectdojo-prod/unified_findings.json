@@ -1,0 +1,27 @@
+﻿{
+    "product":  {
+                    "name":  "SecureKnowledgeBase",
+                    "description":  "DevSecOps Secure Knowledge Base Coursework Solution",
+                    "prodType":  "DevSecOps Education"
+                },
+    "engagement":  {
+                       "name":  "DevSecOps Audit Cycle 1",
+                       "targetStart":  "2026-11-01",
+                       "targetEnd":  "2026-11-15",
+                       "status":  "In Progress",
+                       "environment":  "Local / Development"
+                   },
+    "aggregationMetrics":  {
+                               "totalFindings":  0,
+                               "activeFindings":  0,
+                               "duplicateFindings":  0,
+                               "critical":  0,
+                               "high":  0,
+                               "medium":  0,
+                               "low":  0,
+                               "qualityGate":  "PASSED"
+                           },
+    "findings":  [
+
+                 ]
+}

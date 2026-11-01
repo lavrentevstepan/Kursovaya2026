@@ -1,0 +1,98 @@
+version: '3.8'
+
+networks:
+  defectdojo_net:
+    driver: bridge
+
+volumes:
+  defectdojo_db_data:
+  defectdojo_media:
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: defectdojo
+      POSTGRES_USER: defectdojo
+      POSTGRES_PASSWORD: DefectDojoSecureDbPassword2026!
+    volumes:
+      - defectdojo_db_data:/var/lib/postgresql/data
+    networks:
+      - defectdojo_net
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - defectdojo_net
+
+  uwsgi:
+    image: defectdojo/defectdojo-django:2.35.0
+    restart: unless-stopped
+    environment:
+      DD_DATABASE_ENGINE: django.db.backends.postgresql
+      DD_DATABASE_NAME: defectdojo
+      DD_DATABASE_USER: defectdojo
+      DD_DATABASE_PASSWORD: DefectDojoSecureDbPassword2026!
+      DD_DATABASE_HOST: postgres
+      DD_DATABASE_PORT: "5432"
+      DD_CELERY_BROKER_URL: redis://redis:6379/0
+      DD_SECRET_KEY: DefectDojoSuperSecretKeyForKursDevSecOps2026!
+    volumes:
+      - defectdojo_media:/app/media
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - defectdojo_net
+
+  celery-worker:
+    image: defectdojo/defectdojo-django:2.35.0
+    restart: unless-stopped
+    command: ["/wait-for-it.sh", "uwsgi:8000", "--", "/entrypoint-celery-worker.sh"]
+    environment:
+      DD_DATABASE_ENGINE: django.db.backends.postgresql
+      DD_DATABASE_NAME: defectdojo
+      DD_DATABASE_USER: defectdojo
+      DD_DATABASE_PASSWORD: DefectDojoSecureDbPassword2026!
+      DD_DATABASE_HOST: postgres
+      DD_DATABASE_PORT: "5432"
+      DD_CELERY_BROKER_URL: redis://redis:6379/0
+    volumes:
+      - defectdojo_media:/app/media
+    depends_on:
+      - uwsgi
+    networks:
+      - defectdojo_net
+
+  celery-beat:
+    image: defectdojo/defectdojo-django:2.35.0
+    restart: unless-stopped
+    command: ["/wait-for-it.sh", "uwsgi:8000", "--", "/entrypoint-celery-beat.sh"]
+    environment:
+      DD_DATABASE_ENGINE: django.db.backends.postgresql
+      DD_DATABASE_NAME: defectdojo
+      DD_DATABASE_USER: defectdojo
+      DD_DATABASE_PASSWORD: DefectDojoSecureDbPassword2026!
+      DD_DATABASE_HOST: postgres
+      DD_DATABASE_PORT: "5432"
+      DD_CELERY_BROKER_URL: redis://redis:6379/0
+    volumes:
+      - defectdojo_media:/app/media
+    depends_on:
+      - uwsgi
+    networks:
+      - defectdojo_net
+
+  nginx:
+    image: defectdojo/defectdojo-nginx:2.35.0
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - defectdojo_media:/usr/share/nginx/html/media
+    depends_on:
+      - uwsgi
+    networks:
+      - defectdojo_net

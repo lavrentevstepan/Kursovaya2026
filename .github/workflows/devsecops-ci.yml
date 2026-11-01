@@ -1,0 +1,117 @@
+name: DevSecOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, development ]
+  pull_request:
+    branches: [ main, development ]
+
+jobs:
+  build-and-test:
+    name: Build and Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK 8.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore Dependencies
+        run: dotnet restore SecureKnowledgeBase.sln
+
+      - name: Compile Application
+        run: dotnet build SecureKnowledgeBase.sln --configuration Release --no-restore
+
+      - name: Execute Automated Unit Tests
+        run: dotnet test SecureKnowledgeBase.sln --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
+
+  sast-and-sca:
+    name: Static Code Analysis and SCA
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Run Lightweight SAST Scanner
+        shell: pwsh
+        run: pwsh -ExecutionPolicy Bypass -File ./scripts/run_lightweight_sast.ps1 -SourcePath ./src
+
+      - name: Run OWASP Dependency-Check (SCA)
+        shell: pwsh
+        run: pwsh -ExecutionPolicy Bypass -File ./scripts/run_dependency_check.ps1 -Target ./src
+
+      - name: Upload Security Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-and-sca-reports
+          path: reports/
+
+  iac-security:
+    name: Infrastructure as Code Audit (tfsec)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Run tfsec Security Audit
+        shell: pwsh
+        run: pwsh -ExecutionPolicy Bypass -File ./scripts/run_tfsec.ps1 -Target deploy/terraform
+
+      - name: Upload IaC Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfsec-reports
+          path: reports/tfsec/
+
+  container-and-supply-chain:
+    name: Container Security & Supply Chain (SBOM and Cosign)
+    runs-on: ubuntu-latest
+    needs: [build-and-test]
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Build Docker Container Image
+        run: docker build -t secure-knowledge-base:${{ github.sha }} .
+
+      - name: Scan Container Image via Docker Scout
+        shell: pwsh
+        run: pwsh -ExecutionPolicy Bypass -File ./scripts/run_docker_scout.ps1
+
+      - name: Generate SBOM and Cryptographic Signatures
+        shell: pwsh
+        run: pwsh -ExecutionPolicy Bypass -File ./scripts/generate_and_sign_artifacts.ps1
+
+      - name: Upload Supply Chain Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: supply-chain-artifacts
+          path: |
+            reports/sbom/
+            reports/cosign/
+
+  vulnerability-orchestration:
+    name: DefectDojo Aggregation and Quality Gate
+    runs-on: ubuntu-latest
+    needs: [sast-and-sca, iac-security, container-and-supply-chain]
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Download All Pipeline Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: reports/
+
+      - name: Ingest and Normalize Findings in DefectDojo
+        shell: pwsh
+        run: pwsh -ExecutionPolicy Bypass -File ./scripts/import_reports_to_defectdojo.ps1 -TargetProfile Production
+
+      - name: Upload DefectDojo Consolidated Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: defectdojo-unified-dashboard
+          path: reports/defectdojo-prod/

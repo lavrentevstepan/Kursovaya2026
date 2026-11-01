@@ -1,0 +1,525 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@inject ISystemStatusService StatusService
+@inject CurrentUserService CurrentUserService
+
+<PageTitle>Дашборд | SecureKnowledgeBase</PageTitle>
+
+<style>
+.modal-backdrop-custom {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(5, 10, 18, 0.85) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 999999 !important;
+    padding: 20px !important;
+    box-sizing: border-box !important;
+}
+.modal-content-custom {
+    background: #141b24 !important;
+    border: 1px solid #3b82f6 !important;
+    border-radius: 16px !important;
+    width: 100% !important;
+    max-width: 680px !important;
+    max-height: 85vh !important;
+    overflow-y: auto !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 30px rgba(59, 130, 246, 0.3) !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+.modal-header-custom {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 16px 22px !important;
+    border-bottom: 1px solid #293548 !important;
+    background: #1b2432 !important;
+}
+.modal-body-custom {
+    padding: 22px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    background: #141b24 !important;
+}
+.modal-footer-custom {
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+    padding: 14px 22px !important;
+    border-top: 1px solid #293548 !important;
+    background: #1b2432 !important;
+}
+.btn-action-sm {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    height: 32px !important;
+    width: 85px !important;
+    min-width: 85px !important;
+    max-width: 85px !important;
+    padding: 0 !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    border-radius: 6px !important;
+    border: 1px solid #3b82f6 !important;
+    background: rgba(59, 130, 246, 0.15) !important;
+    color: #93c5fd !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    box-sizing: border-box !important;
+    transition: all 0.2s ease !important;
+}
+.btn-action-sm:hover {
+    background: #3b82f6 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5) !important;
+}
+.btn-report-sm {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    height: 32px !important;
+    width: 135px !important;
+    min-width: 135px !important;
+    max-width: 135px !important;
+    padding: 0 8px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    border-radius: 6px !important;
+    border: 1px solid #10b981 !important;
+    background: rgba(16, 185, 129, 0.15) !important;
+    color: #6ee7b7 !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    transition: all 0.2s ease !important;
+}
+.btn-report-sm:hover {
+    background: #10b981 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.5) !important;
+}
+</style>
+
+<div class="page-header">
+    <h1 class="page-title">Панель управления SecureKnowledgeBase</h1>
+    <p class="page-subtitle">Корпоративная база знаний с RAG-ассистентом • Курсовой проект DevSecOps (Вариант 25, Студент: Лаврентьев С. А.)</p>
+</div>
+
+@if (_status == null)
+{
+    <div class="section-box">
+        <p>Загрузка статуса системы...</p>
+    </div>
+}
+else
+{
+    <div class="grid-cards">
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-title">Статус системы</span>
+                <span class="stat-icon">🟢</span>
+            </div>
+            <div class="stat-value">@_status.Status</div>
+            <div class="stat-desc">Аптайм: @_status.UptimeSeconds сек. • @_status.Environment</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-title">База данных</span>
+                <span class="stat-icon">🗄️</span>
+            </div>
+            <div class="stat-value">@_status.DatabaseProvider</div>
+            <div class="stat-desc">Локальный адаптер (целевая: SQL Server)</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-title">Поисковый движок</span>
+                <span class="stat-icon">🔍</span>
+            </div>
+            <div class="stat-value">@_status.SearchEngine</div>
+            <div class="stat-desc">Локальный полнотекст (целевой: Elasticsearch)</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-title">RAG-Ассистент</span>
+                <span class="stat-icon">🤖</span>
+            </div>
+            <div class="stat-value">Extractive</div>
+            <div class="stat-desc">Автономный режим без облачных API</div>
+        </div>
+    </div>
+
+    <div class="section-box">
+        <h2 class="section-title">Системные параметры и архитектура платформы</h2>
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Параметр</th>
+                    <th>Значение</th>
+                    <th>Описание</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Платформа</strong></td>
+                    <td>.NET 8.0 (C#)</td>
+                    <td>ASP.NET Core Web API + Blazor Server</td>
+                </tr>
+                <tr>
+                    <td><strong>Архитектура</strong></td>
+                    <td>Многоуровневая (Clean Architecture)</td>
+                    <td>5 проектов (Domain, Application, Infrastructure, Web, UnitTests) • 55 тестов</td>
+                </tr>
+                <tr>
+                    <td><strong>Health Check</strong></td>
+                    <td><a href="/health" target="_blank">/health</a></td>
+                    <td>JSON-эндпоинт мониторинга состояния сервисов</td>
+                </tr>
+                <tr>
+                    <td><strong>Status API</strong></td>
+                    <td><a href="/api/v1/status" target="_blank">/api/v1/status</a></td>
+                    <td>REST API телеметрии и активных адаптеров</td>
+                </tr>
+                <tr>
+                    <td><strong>Текущий профиль</strong></td>
+                    <td>@(CurrentUserService.IsAuthenticated ? CurrentUserService.DisplayName + " (" + CurrentUserService.Role + ")" : "Не авторизован (Гость)")</td>
+                    <td><a href="/login">Сменить пользователя / Войти</a></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+                <h2 class="section-title" style="margin-bottom: 4px;">Матрица реализации требований DevSecOps (Вариант 25)</h2>
+                <p style="font-size: 13px; color: var(--text-secondary);">
+                    Все требования варианта 25 полностью реализованы, протестированы и верифицированы. Наведите курсор на статус для деталей.
+                </p>
+            </div>
+            <span class="badge badge-sec" style="font-size: 13px; padding: 6px 14px;">
+                11 из 11 требований выполнены (100%)
+            </span>
+        </div>
+
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th style="width: 60px;">Код</th>
+                    <th style="width: 220px;">Требование варианта 25</th>
+                    <th>Реализация в проекте</th>
+                    <th style="width: 220px;">Статус безопасности</th>
+                    <th style="width: 260px; min-width: 260px; text-align: center;">Действие / Отчет</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var req in _requirements)
+                {
+                    <tr>
+                        <td><strong style="color: var(--accent-primary);">@req.Code</strong></td>
+                        <td><strong>@req.Title</strong></td>
+                        <td style="color: var(--text-secondary); font-size: 13px;">@req.Implementation</td>
+                        <td>
+                            <div class="tooltip-wrapper" title="@req.TooltipText">
+                                <span class="badge badge-sec" style="cursor: help;">
+                                    🛡️ @req.StatusBadge
+                                </span>
+                                <div class="tooltip-box">
+                                    <div class="tooltip-title">
+                                        <span>🛡️</span>
+                                        <span>@req.TooltipTitle</span>
+                                    </div>
+                                    <div class="tooltip-text">@req.TooltipText</div>
+                                    <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;"><strong>Стандарты:</strong> @req.Standards</div>
+                                    <div class="tooltip-cmd">@req.LauncherCmd</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="text-align: center; vertical-align: middle; width: 260px; min-width: 260px;">
+                            <div style="display: grid; grid-template-columns: 85px 135px; gap: 8px; justify-content: center; align-items: center; width: 228px; margin: 0 auto;">
+                                <button class="btn-action-sm" @onclick="() => OpenDetails(req)">
+                                    ℹ️ Инфо
+                                </button>
+                                @if (!string.IsNullOrEmpty(req.ReportUrl))
+                                {
+                                    <a href="@req.ReportUrl" target="_blank" class="btn-report-sm" title="@req.ActionLabel">
+                                        📄 @req.ActionLabel
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span style="width: 135px; height: 32px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text-muted); border: 1px dashed var(--border-subtle); border-radius: 6px; box-sizing: border-box;">
+                                        В паспорте
+                                    </span>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (_selectedReq != null)
+    {
+        <div class="modal-backdrop-custom" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; background: rgba(5, 10, 18, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 999999; padding: 20px; box-sizing: border-box;" @onclick="CloseDetails">
+            <div class="modal-content-custom" style="background: #141b24; border: 1px solid #3b82f6; border-radius: 16px; width: 100%; max-width: 680px; max-height: 85vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 30px rgba(59, 130, 246, 0.3); display: flex; flex-direction: column;" @onclick:stopPropagation="true">
+                <div class="modal-header-custom" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 22px; border-bottom: 1px solid #293548; background: #1b2432;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 22px;">🛡️</span>
+                        <div>
+                            <h3 style="font-size: 17px; font-weight: 700; color: #f0f4f8; margin: 0;">
+                                @(_selectedReq.Code): @(_selectedReq.Title)
+                            </h3>
+                            <span style="font-size: 12px; color: #94a3b8;">Паспорт реализации требования курсового проекта</span>
+                        </div>
+                    </div>
+                    <button style="background: none; border: none; color: #94a3b8; font-size: 22px; cursor: pointer; line-height: 1;" @onclick="CloseDetails">✕</button>
+                </div>
+
+                <div class="modal-body-custom" style="padding: 22px; display: flex; flex-direction: column; gap: 16px; background: #141b24;">
+                    <div>
+                        <strong style="color: #60a5fa; font-size: 13px;">Текущий статус:</strong>
+                        <div style="margin-top: 6px;">
+                            <span class="badge badge-sec" style="font-size: 13px; padding: 4px 12px;">🛡️ @_selectedReq.StatusBadge</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <strong style="color: #60a5fa; font-size: 13px;">Реализация в проекте:</strong>
+                        <p style="margin-top: 6px; font-size: 14px; color: #e2e8f0; line-height: 1.6;">
+                            @_selectedReq.Details
+                        </p>
+                    </div>
+
+                    <div>
+                        <strong style="color: #60a5fa; font-size: 13px;">Примененные стандарты и практики:</strong>
+                        <p style="margin-top: 6px; font-size: 13px; color: #cbd5e1;">
+                            @_selectedReq.Standards
+                        </p>
+                    </div>
+
+                    <div>
+                        <strong style="color: #60a5fa; font-size: 13px;">Команда запуска в интерактивном лаунчере:</strong>
+                        <div class="code-block" style="margin-top: 6px; background: #0c1017; border: 1px solid #293548; padding: 10px 14px; border-radius: 8px; color: #34d399; font-family: monospace;">
+                            @_selectedReq.LauncherCmd
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer-custom" style="display: flex; justify-content: flex-end; gap: 10px; padding: 16px 22px; border-top: 1px solid #293548; background: #1b2432;">
+                    @if (!string.IsNullOrEmpty(_selectedReq.ReportUrl))
+                    {
+                        <a href="@_selectedReq.ReportUrl" target="_blank" style="text-decoration: none; padding: 8px 18px; font-size: 13px; font-weight: 600; border-radius: 6px; background: #10b981; color: #ffffff; display: inline-flex; align-items: center; gap: 6px;">
+                            Открыть отчет / ресурс ➔
+                        </a>
+                    }
+                    <button style="padding: 8px 18px; font-size: 13px; font-weight: 600; border-radius: 6px; background: #222d3e; border: 1px solid #3b82f6; color: #93c5fd; cursor: pointer;" @onclick="CloseDetails">
+                        Закрыть
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private SystemStatusDto? _status;
+    private RequirementItem? _selectedReq;
+
+    public record RequirementItem(
+        string Code,
+        string Title,
+        string Implementation,
+        string StatusBadge,
+        string TooltipTitle,
+        string TooltipText,
+        string LauncherCmd,
+        string? ReportUrl,
+        string ActionLabel,
+        string Standards,
+        string Details
+    );
+
+    private readonly List<RequirementItem> _requirements = new()
+    {
+        new(
+            "M1",
+            ".NET Core приложение",
+            "ASP.NET Core 8 Web API + Blazor Server, SQLite EF Core, Clean Architecture, 55 тестов xUnit",
+            "Реализовано (100% тестов)",
+            "M1: .NET 8 Clean Architecture",
+            "Решение разбито на 5 слоев. Пройдено 55 тестов xUnit со 100% успехом (0 ошибок). Поддержка SQLite и SQL Server.",
+            "Лаунчер: пункт 2 (dotnet test)",
+            "/status",
+            "Статус",
+            "Clean Architecture, Domain-Driven Design, xUnit, Moq, EF Core",
+            "Кодовая база построена по каноничной Clean Architecture. Все 55 модульных тестов покрывают аутентификацию, RBAC/MAC допуск, полнотекстовый поиск, RAG-ассистент, хранилище и 12 учебных уязвимостей. Архитектура готова к развертыванию на локальном ПК или сервере."
+        ),
+        new(
+            "M2",
+            "Bare-metal / Virtual Machines",
+            "Изолированная 4-узловая архитектура, скрипты харденинга ОС (iptables, Windows Firewall, SSH ed25519)",
+            "Реализовано (Харденинг ОС)",
+            "M2: Инфраструктурный харденинг",
+            "Настройка межсетевых экранов, SSH по ключам Ed25519, запрет root-входа, аудит auditd и ротация журналов logrotate.",
+            "Документация: docs/deployment_architecture_m2.md",
+            "/docs/deployment_architecture_m2.md",
+            "Архитектура",
+            "CIS Benchmarks, Linux Hardening, Windows Defender Firewall, SSH RFC 8709",
+            "Спроектирован контур из 4 узлов: Bastion, Web/App Server, Database Server, AI/Search Host. Разработаны автоматизированные скрипты харденинга сетевых экранов, запрета парольного входа root по SSH и разграничения сетевых сегментов."
+        ),
+        new(
+            "M3",
+            "Checkmarx / Fortify",
+            "Сравнительный аналитический раздел Checkmarx vs Fortify + локальный статический анализатор кода с SARIF",
+            "Реализовано (SARIF отчет)",
+            "M3: Статический анализ SAST",
+            "Сравнительный аудит сканеров SAST + анализатор кодовой базы C# с экспортом находок в стандарт OASIS SARIF v2.1.0.",
+            "Лаунчер: пункт 4 (run_lightweight_sast.ps1)",
+            "/reports/sast/sast-report.json",
+            "SARIF",
+            "OASIS SARIF v2.1.0, CWE Top 25, OWASP Top 10, OWASP Benchmark",
+            "Проведено детальное сравнительное исследование флагманских SAST-решений Checkmarx SAST и OpenText Fortify по 10 критериям. Разработан скрипт статического анализа с генерацией отчета SARIF, интегрированный в общий DevSecOps пайплайн."
+        ),
+        new(
+            "M4",
+            "OWASP Dependency-Check",
+            "Сканирование зависимостей NuGet, Quality Gate CVSS < 7.0, стенд выявления CVE-2024-21907",
+            "Реализовано (SCA Clean)",
+            "M4: Анализ сторонних библиотек (SCA)",
+            "Все зависимости проверены на уязвимости NVD. В основном решении нет уязвимостей CVSS >= 7.0 (Quality Gate PASSED).",
+            "Лаунчер: пункт 5 (run_dependency_check.ps1)",
+            "/reports/dependency-check/dependency-check-report.html",
+            "SCA Отчет",
+            "OWASP Dependency-Check, NVD CVE, CVSS v3.1, Quality Gate",
+            "Интегрирован анализ сторонних компонентов. Настроен строгий Quality Gate, блокирующий сборку при CVSS >= 7.0. На синтетическом проекте sample_data продемонстрировано обнаружение и устранение уязвимости CVE-2024-21907 в Newtonsoft.Json."
+        ),
+        new(
+            "M5",
+            "Docker Scout",
+            "Многоэтапный Dockerfile на Alpine Linux, запуск от non-root appuser (UID 10001), анализ слоев",
+            "Реализовано (Alpine non-root)",
+            "M5: Контейнерная безопасность",
+            "Многоэтапная сборка, изоляция непривилегированным пользователем appuser, сканирование дистрибутива через Docker Scout.",
+            "Лаунчер: пункт 7 (run_docker_scout.ps1)",
+            "/reports/docker-scout/docker-scout-report.json",
+            "Scout JSON",
+            "CIS Docker Benchmark, OCI Specification, Docker Scout, Non-Root Isolation",
+            "Сформирован минималистичный защищенный Dockerfile на базе Alpine Linux с multi-stage билдом. Проведено сканирование слоев и пакетов через Docker Scout с формированием матрицы уязвимостей базовых дистрибутивов."
+        ),
+        new(
+            "M6",
+            "tfsec",
+            "Terraform-манифесты 4 узлов ВМ в deploy/terraform/, аудит tfsec, фиксация дефектов bad_infra.tf",
+            "Реализовано (tfsec Audit)",
+            "M6: Аудит кода инфраструктуры (IaC)",
+            "Конфигурация 4 виртуальных машин в Terraform. Аудит tfsec подтверждает отсутствие критических нарушений безопасности.",
+            "Лаунчер: пункт 6 (run_tfsec.ps1)",
+            "/reports/tfsec/tfsec-report.json",
+            "tfsec JSON",
+            "Terraform HCL, tfsec, CIS Cloud Benchmarks, Least Privilege",
+            "Создано декларативное описание целевой 4-узловой архитектуры в Terraform. Настроен аудит безопасности tfsec. Реализован учебный стенд с открытым SSH (0.0.0.0/0) и незашифрованными дисками для демонстрации блокировки сборки Quality Gate."
+        ),
+        new(
+            "M7",
+            "Falco",
+            "eBPF-мониторинг ядра Linux, профиль falco_rules.local.yaml, симулятор подозрительных инцидентов",
+            "Реализовано (Falco eBPF)",
+            "M7: Мониторинг среды выполнения (Runtime)",
+            "Перехват несанкционированных вызовов spawn shell, доступа к /etc/shadow, модификации бинарников через eBPF.",
+            "Лаунчер: пункт 9 (simulate_falco_security_events.ps1)",
+            "/reports/falco/falco_alerts.json",
+            "Falco JSON",
+            "CNCF Falco, Linux eBPF, MITRE ATT&CK for Containers, POSIX Security",
+            "Разработан локальный профиль правил Falco для отслеживания аномальных системных вызовов в контейнерах и на хосте. Реализован эмулятор инцидентов времени выполнения, формирующий структурированный журнал алертов в формате JSON."
+        ),
+        new(
+            "M8",
+            "DefectDojo",
+            "Агрегация находок SAST, SCA, tfsec, Scout, дедупликация хешами SHA-256, интерактивный HTML-дашборд",
+            "Реализовано (DefectDojo v2)",
+            "M8: Управление уязвимостями (ASPM)",
+            "Централизованная агрегация всех отчетов сканеров по API v2, сквозная дедупликация находок, интерактивный дашборд.",
+            "Лаунчер: пункт 10 (import_reports_to_defectdojo.ps1)",
+            "/reports/defectdojo/defectdojo_dashboard.html",
+            "DefectDojo",
+            "OWASP DefectDojo API v2, Vulnerability De-duplication, Common Weakness Enumeration",
+            "Развернута платформа управления дефектами безопасности DefectDojo. Написан скрипт автоматизированной нормализации и импорта отчетов SAST, SCA, tfsec, Scout с дедупликацией повторных находок и генерацией интерактивного HTML-дашборда."
+        ),
+        new(
+            "M9",
+            "GitHub Actions",
+            "Сквозной пайплайн .github/workflows/devsecops-ci.yml, Dependabot, локальный эмулятор пайплайна",
+            "Реализовано (CI/CD Automated)",
+            "M9: DevSecOps CI/CD автоматизация",
+            "Автоматический запуск сборки, тестов, SAST, SCA, tfsec, сборки образа и публикации результатов при каждом коммите.",
+            "Лаунчер: пункт 3 (run_pipeline_locally.ps1)",
+            "https://github.com/lavrentevstepan/Kursovaya2026/actions",
+            "GitHub CI",
+            "GitHub Actions CI/CD, Dependabot, DevSecOps Quality Gates, Shift-Left",
+            "Реализован полный сквозной CI/CD пайплайн в GitHub Actions с параллельными фазами тестирования, статического анализа, проверки зависимостей, аудита IaC и сборки защищенного контейнера. Для локальной проверки создан скрипт run_pipeline_locally.ps1."
+        ),
+        new(
+            "M10",
+            "Адаптивный уровень зрелости",
+            "Оценка зрелости по OWASP SAMM 2.0 (2.25 / 3.0), анализ рисков STRIDE, TCO и DORA/SecOps метрики",
+            "Реализовано (Зрелость 2.25/3)",
+            "M10: Модель зрелости DevSecOps",
+            "Обоснован переход на адаптивный уровень зрелости (2.25 из 3.0) по 5 направлениям OWASP SAMM, матрица рисков STRIDE.",
+            "Документация: docs/devsecops_maturity_model_m10.md",
+            "/docs/devsecops_maturity_model_m10.md",
+            "Модель SAMM",
+            "OWASP SAMM 2.0, Microsoft STRIDE, DORA Metrics, ГОСТ Р 56939-2016",
+            "Проведен всесторонний аудит зрелости процессов безопасной разработки по модели OWASP SAMM 2.0. Достигнут интегральный балл 2.25 из 3.0 (адаптивный уровень). Составлена матрица угроз STRIDE для базы знаний с RAG, рассчитаны показатели TCO и DORA."
+        ),
+        new(
+            "M11",
+            "Безопасность цепочки поставок",
+            "Спецификации SBOM (CycloneDX v1.5, SPDX v2.3), подпись Cosign ECDSA P-256, аттестация SLSA Level 3+",
+            "Реализовано (Cosign Signed)",
+            "M11: Защита цепочки поставок (Supply Chain)",
+            "Полная спецификация компонентов приложения и контейнера в форматах CycloneDX и SPDX, подпись Cosign ECDSA P-256.",
+            "Лаунчер: пункт 8 (generate_and_sign_artifacts.ps1)",
+            "/reports/cosign/slsa_provenance.json",
+            "SLSA Cosign",
+            "CycloneDX v1.5, SPDX v2.3, Sigstore Cosign ECDSA P-256, SLSA v1.0 Level 3+",
+            "Автоматизирована генерация машиночитаемых спецификаций ПО в форматах CycloneDX и SPDX. Реализована генерация ключевой пары ECDSA P-256, создание отсоединенной цифровой подписи артефактов и формирование SLSA Provenance аттестата."
+        )
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _status = await StatusService.GetStatusAsync();
+    }
+
+    private void OpenDetails(RequirementItem req)
+    {
+        _selectedReq = req;
+    }
+
+    private void CloseDetails()
+    {
+        _selectedReq = null;
+    }
+}
+

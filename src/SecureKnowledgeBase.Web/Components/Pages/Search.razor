@@ -1,0 +1,208 @@
+@page "/search"
+@rendermode InteractiveServer
+@using System.Text.RegularExpressions
+@inject ISearchService SearchService
+@inject IDocumentService DocumentService
+@inject CurrentUserService CurrentUserService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Поиск по базе знаний | SecureKnowledgeBase</PageTitle>
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+    <div>
+        <h1 class="page-title">Поиск по базе знаний</h1>
+        <p class="page-subtitle">Локальный полнотекстовый поиск по фрагментам с морфологическим ранжированием и контролем доступа</p>
+    </div>
+    <div>
+        <span class="badge @(CurrentUserService.MaxAllowedAccessLevel == AccessLevel.Confidential ? "badge-systemadmin" : CurrentUserService.MaxAllowedAccessLevel == AccessLevel.Restricted ? "badge-securityauditor" : "badge-user")" style="font-size: 13px; padding: 6px 12px;">
+            Уровень допуска: @CurrentUserService.MaxAllowedAccessLevel
+        </span>
+    </div>
+</div>
+
+<div class="section-box" style="margin-bottom: 24px;">
+    <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+        <div style="flex-grow: 1; min-width: 260px; position: relative;">
+            <input class="form-control"
+                   style="font-size: 15px; padding: 12px 16px;"
+                   placeholder="Введите поисковый запрос (например: регламент доступа, пароли, безопасность)..."
+                   @bind="_query"
+                   @bind:event="oninput"
+                   @onkeydown="HandleKeyDown" />
+        </div>
+        <div style="width: 200px;">
+            <select class="form-control" style="padding: 12px;" @bind="_selectedCategory">
+                <option value="">Все категории</option>
+                @foreach (var cat in _categories)
+                {
+                    <option value="@cat">@cat</option>
+                }
+            </select>
+        </div>
+        <div>
+            <button class="btn btn-primary" style="padding: 12px 24px; font-weight: 600;" @onclick="ExecuteSearch" disabled="@_isSearching">
+                @(_isSearching ? "Поиск..." : "🔍 Найти")
+            </button>
+        </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <span style="font-size: 13px; color: var(--text-secondary);">Популярные запросы:</span>
+        <button class="btn btn-sm btn-outline" @onclick='() => SetSampleQuery("регламент доступа")'>регламент доступа</button>
+        <button class="btn btn-sm btn-outline" @onclick='() => SetSampleQuery("пароли")'>пароли</button>
+        <button class="btn btn-sm btn-outline" @onclick='() => SetSampleQuery("безопасность")'>безопасность</button>
+        <button class="btn btn-sm btn-outline" @onclick='() => SetSampleQuery("целостность SHA-256")'>целостность SHA-256</button>
+    </div>
+</div>
+
+@if (_searchResult != null)
+{
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 0 4px;">
+        <div style="font-size: 14px; color: var(--text-secondary);">
+            Найдено фрагментов: <strong style="color: #ffffff;">@_searchResult.TotalHits</strong> по запросу «@_searchResult.Query»
+        </div>
+        <div style="font-family: var(--font-mono); font-size: 12px; color: #38bdf8; background-color: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); padding: 4px 10px; border-radius: var(--radius-sm);">
+            ⚡ Время поиска: @_searchResult.ElapsedMilliseconds мс
+        </div>
+    </div>
+
+    @if (_searchResult.TotalHits == 0)
+    {
+        <div class="section-box" style="text-align: center; padding: 48px 20px; color: var(--text-secondary);">
+            <div style="font-size: 40px; margin-bottom: 12px;">🔍</div>
+            <h3 style="color: #ffffff; margin-bottom: 8px;">Ничего не найдено</h3>
+            <p style="font-size: 14px; max-width: 500px; margin: 0 auto;">
+                По запросу «@_searchResult.Query» релевантных фрагментов не обнаружено либо документы ограничены вашим уровнем доступа (@CurrentUserService.MaxAllowedAccessLevel).
+            </p>
+        </div>
+    }
+    else
+    {
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+            @foreach (var hit in _searchResult.Hits)
+            {
+                <div class="section-box" style="margin-bottom: 0; border-color: rgba(59, 130, 246, 0.25); transition: border-color 0.2s;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                                <a href="documents/@hit.DocumentId" style="font-size: 17px; font-weight: 600; color: #ffffff;">
+                                    @hit.DocumentTitle
+                                </a>
+                                <span class="badge badge-db">@hit.Category</span>
+                                <span class="badge @(hit.AccessLevel == AccessLevel.Confidential ? "badge-systemadmin" : hit.AccessLevel == AccessLevel.Restricted ? "badge-securityauditor" : "badge-user")">
+                                    @hit.AccessLevel
+                                </span>
+                            </div>
+                            <div style="font-size: 12px; color: #818cf8; display: flex; align-items: center; gap: 6px;">
+                                <span>📌</span>
+                                <span>@hit.SectionHeader (Фрагмент #@hit.ChunkNumber)</span>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="badge badge-sec" style="font-family: var(--font-mono); font-size: 12px;">
+                                Score: @hit.Score
+                            </span>
+                        </div>
+                    </div>
+
+                    <div style="color: var(--text-primary); font-size: 14px; line-height: 1.6; background-color: var(--bg-surface); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); margin-bottom: 12px;">
+                        @((MarkupString)HighlightSnippet(hit.Snippet, _searchResult.Query))
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                        <a href="documents/@hit.DocumentId" class="btn btn-sm btn-outline">Карточка документа</a>
+                        <a href="api/v1/documents/@hit.DocumentId/download" target="_blank" class="btn btn-sm btn-outline">Скачать оригинал</a>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    private string _query = string.Empty;
+    private string _selectedCategory = string.Empty;
+    private List<string> _categories = new();
+    private bool _isSearching = false;
+    private SearchResultDto? _searchResult;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var filter = new DocumentFilterDto
+        {
+            MaxAccessLevel = CurrentUserService.MaxAllowedAccessLevel
+        };
+        var docs = await DocumentService.GetDocumentsAsync(filter);
+        _categories = docs.Select(d => d.Category).Distinct().OrderBy(c => c).ToList();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await ExecuteSearch();
+        }
+    }
+
+    private async Task SetSampleQuery(string sample)
+    {
+        _query = sample;
+        await ExecuteSearch();
+    }
+
+    private async Task ExecuteSearch()
+    {
+        if (string.IsNullOrWhiteSpace(_query))
+        {
+            return;
+        }
+
+        _isSearching = true;
+
+        try
+        {
+            var request = new SearchRequestDto
+            {
+                Query = _query.Trim(),
+                Category = string.IsNullOrWhiteSpace(_selectedCategory) ? null : _selectedCategory,
+                MaxResults = 15
+            };
+
+            _searchResult = await SearchService.SearchAsync(request, CurrentUserService.MaxAllowedAccessLevel);
+        }
+        finally
+        {
+            _isSearching = false;
+        }
+    }
+
+    private static string HighlightSnippet(string snippet, string query)
+    {
+        if (string.IsNullOrWhiteSpace(snippet) || string.IsNullOrWhiteSpace(query))
+        {
+            return System.Net.WebUtility.HtmlEncode(snippet);
+        }
+
+        var encoded = System.Net.WebUtility.HtmlEncode(snippet);
+        var terms = query.Split(new[] { ' ', ',', '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)
+            .Where(t => t.Length > 2)
+            .Distinct();
+
+        foreach (var term in terms)
+        {
+            var pattern = Regex.Escape(term);
+            if (term.Length > 3)
+            {
+                pattern = Regex.Escape(term.Substring(0, term.Length - 1));
+            }
+
+            encoded = Regex.Replace(
+                encoded,
+                $@"\b({pattern}[\p{{L}}\p{{N}}]*)",
+                "<mark style=\"background-color: rgba(245, 158, 11, 0.25); color: #fbbf24; font-weight: 600; padding: 2px 4px; border-radius: 3px;\">$1</mark>",
+                RegexOptions.IgnoreCase);
+        }
+
+        return encoded;
+    }
+}

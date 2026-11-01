@@ -1,0 +1,61 @@
+﻿{
+    "schema":  "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+    "version":  "2.1.0",
+    "runs":  [
+                 {
+                     "tool":  {
+                                  "driver":  {
+                                                 "name":  "SKB-Lightweight-SAST",
+                                                 "version":  "1.0.0",
+                                                 "informationUri":  "https://github.com/lavrentevstepan/Kursovaya2026",
+                                                 "rules":  [
+                                                               {
+                                                                   "id":  "SKB-SAST-001",
+                                                                   "name":  "Hardcoded Secret Detection",
+                                                                   "shortDescription":  {
+                                                                                            "text":  "Potential hardcoded plaintext secret or credential detected."
+                                                                                        },
+                                                                   "defaultConfiguration":  {
+                                                                                                "level":  "error"
+                                                                                            }
+                                                               },
+                                                               {
+                                                                   "id":  "SKB-SAST-002",
+                                                                   "name":  "Weak Cryptographic Hash",
+                                                                   "shortDescription":  {
+                                                                                            "text":  "Use of broken cryptographic hash function (MD5/SHA1). Use SHA-256 or higher."
+                                                                                        },
+                                                                   "defaultConfiguration":  {
+                                                                                                "level":  "error"
+                                                                                            }
+                                                               },
+                                                               {
+                                                                   "id":  "SKB-SAST-003",
+                                                                   "name":  "Unsafe Deserialization",
+                                                                   "shortDescription":  {
+                                                                                            "text":  "Insecure BinaryFormatter deserialization detected. Use System.Text.Json."
+                                                                                        },
+                                                                   "defaultConfiguration":  {
+                                                                                                "level":  "error"
+                                                                                            }
+                                                               },
+                                                               {
+                                                                   "id":  "SKB-SAST-004",
+                                                                   "name":  "Raw SQL Concatenation",
+                                                                   "shortDescription":  {
+                                                                                            "text":  "Possible unparameterized raw SQL string interpolation. Use parameterized queries."
+                                                                                        },
+                                                                   "defaultConfiguration":  {
+                                                                                                "level":  "error"
+                                                                                            }
+                                                               }
+                                                           ]
+                                             }
+                              },
+                     "results":  {
+
+                                 }
+                 }
+             ]
+}
+

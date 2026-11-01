@@ -1,0 +1,157 @@
+@page "/audit"
+@rendermode InteractiveServer
+@inject IAuditService AuditService
+@inject CurrentUserService CurrentUserService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Журнал аудита | SecureKnowledgeBase</PageTitle>
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div>
+        <h1 class="page-title">Журнал аудита безопасности</h1>
+        <p class="page-subtitle">Непрерывная фиксация событий аутентификации, доступа к файлам и административных действий</p>
+    </div>
+    <div>
+        <span class="badge badge-sec" style="font-size: 13px; padding: 6px 12px;">
+            🔒 Маскирование секретов активно
+        </span>
+    </div>
+</div>
+
+<div class="section-box">
+    <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
+        <div style="flex-grow: 1; min-width: 200px;">
+            <input class="form-control" placeholder="Поиск по имени пользователя..." @bind="_filterUsername" @bind:event="oninput" @bind:after="ApplyFilter" />
+        </div>
+        <div style="width: 220px;">
+            <select class="form-control" @bind="_selectedActionString" @bind:after="ApplyFilter">
+                <option value="">Все типы действий</option>
+                <option value="DocumentUpload">DocumentUpload (Загрузка)</option>
+                <option value="DocumentUpdate">DocumentUpdate (Изменение)</option>
+                <option value="DocumentDelete">DocumentDelete (Удаление)</option>
+                <option value="FileDownload">FileDownload (Скачивание)</option>
+                <option value="AccessDenied">AccessDenied (Отказ доступа)</option>
+                <option value="Login">Login (Вход в систему)</option>
+                <option value="Logout">Logout (Выход)</option>
+                <option value="SecurityEvent">SecurityEvent (Безопасность)</option>
+            </select>
+        </div>
+        <div>
+            <button class="btn btn-outline" @onclick="LoadEvents">🔄 Обновить журнал</button>
+        </div>
+    </div>
+
+    @if (_events == null)
+    {
+        <p style="color: var(--text-secondary);">Загрузка журнала аудита...</p>
+    }
+    else if (_events.Count == 0)
+    {
+        <div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
+            <div style="font-size: 36px; margin-bottom: 12px;">📜</div>
+            <h3 style="color: #ffffff; margin-bottom: 6px;">События не найдены</h3>
+            <p style="font-size: 14px;">По заданным критериям фильтрации записей аудита не обнаружено.</p>
+        </div>
+    }
+    else
+    {
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Время (UTC)</th>
+                    <th>Пользователь</th>
+                    <th>Действие</th>
+                    <th>Объект / Идентификатор</th>
+                    <th>Результат</th>
+                    <th>IP-адрес</th>
+                    <th>Метаданные события</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var ev in _events)
+                {
+                    <tr>
+                        <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); white-space: nowrap;">
+                            @ev.TimestampUtc.ToString("dd.MM.yyyy HH:mm:ss")
+                        </td>
+                        <td>
+                            <span class="badge @(ev.Username == "admin" ? "badge-systemadmin" : ev.Username == "auditor" ? "badge-securityauditor" : "badge-user")">
+                                @ev.Username
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge @GetActionBadgeClass(ev.Action)">
+                                @ev.ActionName
+                            </span>
+                        </td>
+                        <td>
+                            <div style="font-size: 13px; font-weight: 500;">@ev.TargetType</div>
+                            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">@ev.TargetId</div>
+                        </td>
+                        <td>
+                            <span class="badge @(ev.Result == "Success" ? "badge-sec" : "badge-systemadmin")">
+                                @ev.Result
+                            </span>
+                        </td>
+                        <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary);">
+                            @ev.ClientIpAddress
+                        </td>
+                        <td>
+                            <div style="font-family: var(--font-mono); font-size: 11px; color: #38bdf8; max-width: 320px; word-break: break-all; background-color: rgba(0, 0, 0, 0.3); padding: 4px 8px; border-radius: 4px;">
+                                @ev.MetadataJson
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<AuditEventDto>? _events;
+    private string _filterUsername = string.Empty;
+    private string _selectedActionString = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEvents();
+    }
+
+    private async Task LoadEvents()
+    {
+        AuditAction? action = null;
+        if (!string.IsNullOrEmpty(_selectedActionString) && Enum.TryParse<AuditAction>(_selectedActionString, out var parsedAction))
+        {
+            action = parsedAction;
+        }
+
+        var filter = new AuditFilterDto
+        {
+            Username = string.IsNullOrWhiteSpace(_filterUsername) ? null : _filterUsername.Trim(),
+            Action = action,
+            PageSize = 100
+        };
+
+        _events = await AuditService.GetEventsAsync(filter);
+    }
+
+    private async Task ApplyFilter()
+    {
+        await LoadEvents();
+    }
+
+    private static string GetActionBadgeClass(AuditAction action)
+    {
+        return action switch
+        {
+            AuditAction.AccessDenied => "badge-systemadmin",
+            AuditAction.DocumentUpload => "badge-sec",
+            AuditAction.DocumentUpdate => "badge-db",
+            AuditAction.DocumentDelete => "badge-systemadmin",
+            AuditAction.FileDownload => "badge-user",
+            AuditAction.Login => "badge-sec",
+            _ => "badge-user"
+        };
+    }
+}

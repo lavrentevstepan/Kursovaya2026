@@ -1,0 +1,13 @@
+-D
+-b 8192
+-f 1
+-e 1
+
+-w /etc/securekb/ -p wa -k skb_config_changes
+-w /var/www/securekb/ -p wa -k skb_app_tampering
+-w /etc/passwd -p wa -k user_modifications
+-w /etc/shadow -p wa -k shadow_tampering
+-w /etc/ssh/sshd_config -p wa -k sshd_tampering
+
+-a always,exit -F arch=b64 -S execve -F uid=1001 -k skb_proc_execution
+-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F auid>=1000 -F auid!=4294967295 -k skb_file_deletion

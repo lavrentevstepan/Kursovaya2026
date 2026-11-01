@@ -1,0 +1,294 @@
+@page "/documents"
+@rendermode InteractiveServer
+@inject IDocumentService DocumentService
+@inject CurrentUserService CurrentUserService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Документы | SecureKnowledgeBase</PageTitle>
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div>
+        <h1 class="page-title">Корпоративные документы</h1>
+        <p class="page-subtitle">Централизованное хранилище регламентов, политик и инструкций базы знаний</p>
+    </div>
+    <div>
+        <button class="btn btn-primary" @onclick="ToggleUploadSection">
+            @(_showUploadSection ? "Скрыть форму" : "➕ Загрузить документ")
+        </button>
+    </div>
+</div>
+
+@if (_showUploadSection)
+{
+    <div class="section-box" style="border-color: var(--accent-primary);">
+        <h2 class="section-title">Загрузка нового документа</h2>
+
+        @if (!string.IsNullOrEmpty(_uploadError))
+        {
+            <div style="background-color: var(--danger-bg); border: 1px solid var(--danger); color: #fca5a5; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 16px;">
+                @_uploadError
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(_uploadSuccess))
+        {
+            <div style="background-color: var(--success-bg); border: 1px solid var(--success); color: #86efac; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 16px;">
+                @_uploadSuccess
+            </div>
+        }
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+            <div class="form-group">
+                <label class="form-label" for="docFile">Файл (.txt, .md, .pdf, .docx, макс. 20 МБ)</label>
+                <InputFile id="docFile" OnChange="HandleFileSelected" class="form-control" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="docTitle">Название документа</label>
+                <input id="docTitle" class="form-control" @bind="_uploadTitle" placeholder="Оставьте пустым для имени файла" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="docCategory">Категория</label>
+                <input id="docCategory" class="form-control" @bind="_uploadCategory" placeholder="Безопасность, ИТ, Общие..." />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="docAccess">Уровень доступа</label>
+                <select id="docAccess" class="form-control" @bind="_uploadAccessLevel">
+                    <option value="@AccessLevel.PublicInternal">PublicInternal (Для всех)</option>
+                    <option value="@AccessLevel.Restricted">Restricted (Для специалистов)</option>
+                    <option value="@AccessLevel.Confidential">Confidential (Только для администраторов)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="docDesc">Описание / Аннотация</label>
+            <textarea id="docDesc" class="form-control" rows="2" @bind="_uploadDescription" placeholder="Краткое описание содержимого документа"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <button class="btn btn-primary" @onclick="SubmitUpload" disabled="@_isUploading">
+                @(_isUploading ? "Загрузка и хеширование..." : "Сохранить в базу знаний")
+            </button>
+            <button class="btn btn-outline" @onclick="ToggleUploadSection">Отмена</button>
+        </div>
+    </div>
+}
+
+<div class="section-box">
+    <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
+        <div style="flex-grow: 1; min-width: 220px;">
+            <input class="form-control" placeholder="Поиск по названию или описанию..." @bind="_searchTerm" @bind:event="oninput" @bind:after="FilterDocuments" />
+        </div>
+        <div style="width: 200px;">
+            <select class="form-control" @bind="_selectedCategory" @bind:after="FilterDocuments">
+                <option value="">Все категории</option>
+                @foreach (var cat in _categories)
+                {
+                    <option value="@cat">@cat</option>
+                }
+            </select>
+        </div>
+        <div>
+            <button class="btn btn-outline" @onclick="LoadDocuments">🔄 Обновить</button>
+        </div>
+    </div>
+
+    @if (_documents == null)
+    {
+        <p style="color: var(--text-secondary);">Загрузка списка документов...</p>
+    }
+    else if (_documents.Count == 0)
+    {
+        <div style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
+            <div style="font-size: 36px; margin-bottom: 12px;">📂</div>
+            <h3 style="color: #ffffff; margin-bottom: 6px;">Документы не найдены</h3>
+            <p style="font-size: 14px;">В базе знаний пока нет загруженных документов или они недоступны вашему уровню допуска.</p>
+        </div>
+    }
+    else
+    {
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Название документа</th>
+                    <th>Категория</th>
+                    <th>Уровень доступа</th>
+                    <th>Размер</th>
+                    <th>Статус</th>
+                    <th>Дата загрузки</th>
+                    <th style="text-align: right;">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var doc in _documents)
+                {
+                    <tr>
+                        <td>
+                            <div>
+                                <a href="documents/@doc.Id" style="font-weight: 600;">@doc.Title</a>
+                                <div style="font-size: 12px; color: var(--text-muted);">@doc.OriginalFileName</div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-db">@doc.Category</span>
+                        </td>
+                        <td>
+                            <span class="badge @(doc.AccessLevel == AccessLevel.Confidential ? "badge-systemadmin" : doc.AccessLevel == AccessLevel.Restricted ? "badge-securityauditor" : "badge-user")">
+                                @doc.AccessLevel
+                            </span>
+                        </td>
+                        <td>@FormatBytes(doc.FileSizeBytes)</td>
+                        <td>
+                            <span class="badge badge-sec">@doc.Status</span>
+                        </td>
+                        <td>@doc.CreatedAtUtc.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td style="text-align: right;">
+                            <div style="display: inline-flex; gap: 6px;">
+                                <a href="documents/@doc.Id" class="btn btn-sm btn-outline">Карточка</a>
+                                <a href="api/v1/documents/@doc.Id/download" target="_blank" class="btn btn-sm btn-outline">⬇️</a>
+                                @if (CanDelete())
+                                {
+                                    <button class="btn btn-sm btn-outline" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.4);" @onclick="() => DeleteDocument(doc.Id)">🗑️</button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<DocumentDto>? _documents;
+    private List<string> _categories = new();
+    private string _searchTerm = string.Empty;
+    private string _selectedCategory = string.Empty;
+
+    private bool _showUploadSection = false;
+    private bool _isUploading = false;
+    private IBrowserFile? _selectedFile;
+    private string _uploadTitle = string.Empty;
+    private string _uploadCategory = "Безопасность";
+    private AccessLevel _uploadAccessLevel = AccessLevel.PublicInternal;
+    private string _uploadDescription = string.Empty;
+    private string? _uploadError;
+    private string? _uploadSuccess;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDocuments();
+    }
+
+    private async Task LoadDocuments()
+    {
+        var filter = new DocumentFilterDto
+        {
+            MaxAccessLevel = CurrentUserService.MaxAllowedAccessLevel,
+            SearchTerm = string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm,
+            Category = string.IsNullOrWhiteSpace(_selectedCategory) ? null : _selectedCategory
+        };
+
+        _documents = await DocumentService.GetDocumentsAsync(filter);
+        _categories = _documents.Select(d => d.Category).Distinct().OrderBy(c => c).ToList();
+    }
+
+    private async Task FilterDocuments()
+    {
+        await LoadDocuments();
+    }
+
+    private void ToggleUploadSection()
+    {
+        _showUploadSection = !_showUploadSection;
+        _uploadError = null;
+        _uploadSuccess = null;
+    }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        _selectedFile = e.File;
+        if (string.IsNullOrWhiteSpace(_uploadTitle) && _selectedFile != null)
+        {
+            _uploadTitle = Path.GetFileNameWithoutExtension(_selectedFile.Name);
+        }
+    }
+
+    private async Task SubmitUpload()
+    {
+        _uploadError = null;
+        _uploadSuccess = null;
+
+        if (_selectedFile == null)
+        {
+            _uploadError = "Пожалуйста, выберите файл для загрузки";
+            return;
+        }
+
+        try
+        {
+            _isUploading = true;
+            var ownerId = CurrentUserService.UserId ?? Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+            await using var stream = _selectedFile.OpenReadStream(20 * 1024 * 1024);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            var request = new DocumentUploadRequestDto
+            {
+                Title = _uploadTitle,
+                Description = _uploadDescription,
+                Category = _uploadCategory,
+                AccessLevel = _uploadAccessLevel,
+                OriginalFileName = _selectedFile.Name,
+                ContentType = _selectedFile.ContentType,
+                FileStream = memoryStream,
+                FileLength = memoryStream.Length
+            };
+
+            var doc = await DocumentService.UploadDocumentAsync(request, ownerId);
+            _uploadSuccess = $"Документ «{doc.Title}» успешно сохранен и зарегистрирован в базе!";
+            _selectedFile = null;
+            _uploadTitle = string.Empty;
+            _uploadDescription = string.Empty;
+            await LoadDocuments();
+        }
+        catch (Exception ex)
+        {
+            _uploadError = ex.Message;
+        }
+        finally
+        {
+            _isUploading = false;
+        }
+    }
+
+    private async Task DeleteDocument(Guid id)
+    {
+        var userId = CurrentUserService.UserId ?? Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var role = CurrentUserService.Role ?? UserRole.SystemAdmin;
+
+        var deleted = await DocumentService.DeleteDocumentAsync(id, userId, role);
+        if (deleted)
+        {
+            await LoadDocuments();
+        }
+    }
+
+    private bool CanDelete()
+    {
+        if (!CurrentUserService.IsAuthenticated) return true;
+        return CurrentUserService.Role == UserRole.SystemAdmin || CurrentUserService.Role == UserRole.KnowledgeAdmin;
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} Б";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} КБ";
+        return $"{bytes / (1024.0 * 1024.0):F2} МБ";
+    }
+}

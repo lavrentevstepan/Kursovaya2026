@@ -1,0 +1,362 @@
+@page "/documents/{Id:guid}"
+@rendermode InteractiveServer
+@inject IDocumentService DocumentService
+@inject CurrentUserService CurrentUserService
+@inject NavigationManager NavigationManager
+
+<PageTitle>@(_document?.Title ?? "Карточка документа") | SecureKnowledgeBase</PageTitle>
+
+<div style="margin-bottom: 20px;">
+    <a href="documents" class="btn btn-sm btn-outline" style="display: inline-flex; align-items: center; gap: 8px;">
+        <span>⬅️</span>
+        <span>Назад к списку документов</span>
+    </a>
+</div>
+
+@if (_isLoading)
+{
+    <div class="section-box" style="text-align: center; padding: 40px 20px;">
+        <p style="color: var(--text-secondary);">Загрузка карточки документа...</p>
+    </div>
+}
+else if (!string.IsNullOrEmpty(_errorMessage) || _document == null)
+{
+    <div class="section-box" style="text-align: center; padding: 40px 20px; border-color: rgba(239, 68, 68, 0.3);">
+        <div style="font-size: 36px; margin-bottom: 12px;">🔒</div>
+        <h2 style="color: #ffffff; margin-bottom: 8px;">Доступ ограничен или документ не найден</h2>
+        <p style="color: var(--text-secondary); max-width: 500px; margin: 0 auto 20px auto; font-size: 14px;">
+            @(_errorMessage ?? "Указанный документ не существует либо ваш текущий уровень допуска недостаточен для его просмотра.")
+        </p>
+        <a href="documents" class="btn btn-primary">Вернуться к списку</a>
+    </div>
+}
+else
+{
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap;">
+                <span class="badge @(_document.AccessLevel == AccessLevel.Confidential ? "badge-systemadmin" : _document.AccessLevel == AccessLevel.Restricted ? "badge-securityauditor" : "badge-user")">
+                    @_document.AccessLevel
+                </span>
+                <span class="badge badge-db">@_document.Category</span>
+                <span class="badge badge-sec">@_document.Status</span>
+            </div>
+            <h1 class="page-title" style="margin-bottom: 4px;">@_document.Title</h1>
+            <p class="page-subtitle">Исходный файл: @_document.OriginalFileName</p>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="api/v1/documents/@_document.Id/download" target="_blank" class="btn btn-outline" style="display: inline-flex; align-items: center; gap: 8px;">
+                <span>⬇️</span>
+                <span>Скачать файл</span>
+            </a>
+            @if (CanEdit())
+            {
+                <button class="btn btn-outline" @onclick="ToggleEditMode">
+                    <span>✏️</span>
+                    <span>@(_isEditing ? "Отмена редактирования" : "Редактировать")</span>
+                </button>
+            }
+            @if (CanDelete())
+            {
+                <button class="btn btn-outline" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.4);" @onclick="() => _showDeleteConfirm = true">
+                    <span>🗑️</span>
+                    <span>Удалить</span>
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (_showDeleteConfirm)
+    {
+        <div class="section-box" style="border-color: var(--danger); background-color: rgba(239, 68, 68, 0.08); margin-bottom: 24px;">
+            <h3 style="color: #fca5a5; font-size: 16px; margin-bottom: 8px;">Подтверждение удаления</h3>
+            <p style="color: var(--text-primary); font-size: 14px; margin-bottom: 16px;">
+                Вы действительно хотите удалить документ «@_document.Title» и связанный файл из защищенного хранилища? Это действие будет зафиксировано в журнале аудита.
+            </p>
+            <div style="display: flex; gap: 12px;">
+                <button class="btn btn-primary" style="background-color: var(--danger); border-color: var(--danger);" @onclick="ExecuteDelete">
+                    Да, удалить документ
+                </button>
+                <button class="btn btn-outline" @onclick="() => _showDeleteConfirm = false">
+                    Отмена
+                </button>
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_updateSuccess))
+    {
+        <div style="background-color: var(--success-bg); border: 1px solid var(--success); color: #86efac; padding: 12px 16px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 20px;">
+            @_updateSuccess
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_updateError))
+    {
+        <div style="background-color: var(--danger-bg); border: 1px solid var(--danger); color: #fca5a5; padding: 12px 16px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 20px;">
+            @_updateError
+        </div>
+    }
+
+    @if (_isEditing)
+    {
+        <div class="section-box" style="border-color: var(--accent-primary); margin-bottom: 24px;">
+            <h2 class="section-title">Редактирование метаданных документа</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                <div class="form-group">
+                    <label class="form-label" for="editTitle">Название документа</label>
+                    <input id="editTitle" class="form-control" @bind="_editTitle" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="editCategory">Категория</label>
+                    <input id="editCategory" class="form-control" @bind="_editCategory" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="editAccess">Уровень доступа</label>
+                    <select id="editAccess" class="form-control" @bind="_editAccessLevel">
+                        <option value="@AccessLevel.PublicInternal">PublicInternal (Для всех)</option>
+                        <option value="@AccessLevel.Restricted">Restricted (Для специалистов)</option>
+                        <option value="@AccessLevel.Confidential">Confidential (Только для администраторов)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="editDesc">Описание / Аннотация</label>
+                <textarea id="editDesc" class="form-control" rows="3" @bind="_editDescription"></textarea>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button class="btn btn-primary" @onclick="SaveMetadata" disabled="@_isSaving">
+                    @(_isSaving ? "Сохранение..." : "Сохранить изменения")
+                </button>
+                <button class="btn btn-outline" @onclick="ToggleEditMode">Отмена</button>
+            </div>
+        </div>
+    }
+
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px;">
+        <div class="section-box">
+            <h2 class="section-title">Аннотация и описание</h2>
+            <div style="color: var(--text-primary); font-size: 14px; line-height: 1.6; white-space: pre-wrap; background-color: var(--bg-surface); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                @(!string.IsNullOrWhiteSpace(_document.Description) ? _document.Description : "Описание для этого документа не указано.")
+            </div>
+
+            <div style="margin-top: 24px;">
+                <h3 style="color: #ffffff; font-size: 15px; margin-bottom: 12px;">Криптографический контроль целостности</h3>
+                <div style="background-color: var(--bg-surface); border: 1px solid var(--border-subtle); padding: 16px; border-radius: var(--radius-sm);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Хеш-сумма SHA-256</span>
+                        <span class="badge badge-sec">Контроль целостности активен</span>
+                    </div>
+                    <div style="font-family: var(--font-mono); font-size: 13px; color: #38bdf8; background-color: rgba(0, 0, 0, 0.4); padding: 10px 14px; border-radius: var(--radius-sm); word-break: break-all; border: 1px solid rgba(56, 189, 248, 0.2);">
+                        @_document.FileSha256Hash
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-box">
+            <h2 class="section-title">Параметры файла</h2>
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Идентификатор (GUID)</div>
+                    <div style="font-family: var(--font-mono); font-size: 12px; color: var(--text-primary); word-break: break-all;">@_document.Id</div>
+                </div>
+                <div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Размер файла</div>
+                    <div style="font-size: 14px; font-weight: 600; color: var(--text-primary);">@FormatBytes(_document.FileSizeBytes)</div>
+                </div>
+                <div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">MIME-тип контента</div>
+                    <div style="font-family: var(--font-mono); font-size: 13px; color: var(--text-primary);">@_document.ContentType</div>
+                </div>
+                <div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Владелец / Загрузил</div>
+                    <div style="font-size: 14px; color: var(--text-primary);">@_document.OwnerUsername</div>
+                </div>
+                <div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Дата и время создания</div>
+                    <div style="font-size: 14px; color: var(--text-primary);">@_document.CreatedAtUtc.ToString("dd.MM.yyyy HH:mm:ss") UTC</div>
+                </div>
+                @if (_document.UpdatedAtUtc.HasValue)
+                {
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Дата последнего изменения</div>
+                        <div style="font-size: 14px; color: var(--text-primary);">@_document.UpdatedAtUtc.Value.ToString("dd.MM.yyyy HH:mm:ss") UTC</div>
+                    </div>
+                }
+                <div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">Фрагментов индексации (Chunks)</div>
+                    <div style="font-size: 14px; font-weight: 600; color: #818cf8;">@_document.ChunkCount фрагментов</div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private DocumentDto? _document;
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private bool _isEditing = false;
+    private bool _isSaving = false;
+    private string _editTitle = string.Empty;
+    private string _editDescription = string.Empty;
+    private string _editCategory = string.Empty;
+    private AccessLevel _editAccessLevel = AccessLevel.PublicInternal;
+    private string? _updateSuccess;
+    private string? _updateError;
+
+    private bool _showDeleteConfirm = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDocument();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadDocument();
+    }
+
+    private async Task LoadDocument()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _document = await DocumentService.GetDocumentByIdAsync(Id, CurrentUserService.MaxAllowedAccessLevel);
+            if (_document == null)
+            {
+                _errorMessage = "Документ не найден или у вас недостаточно прав доступа для его просмотра.";
+            }
+            else
+            {
+                ResetEditFields();
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void ResetEditFields()
+    {
+        if (_document != null)
+        {
+            _editTitle = _document.Title;
+            _editDescription = _document.Description;
+            _editCategory = _document.Category;
+            _editAccessLevel = _document.AccessLevel;
+        }
+    }
+
+    private void ToggleEditMode()
+    {
+        _isEditing = !_isEditing;
+        _updateError = null;
+        _updateSuccess = null;
+        if (_isEditing)
+        {
+            ResetEditFields();
+        }
+    }
+
+    private bool CanEdit()
+    {
+        if (_document == null) return false;
+        return CurrentUserService.Role == UserRole.SystemAdmin ||
+               CurrentUserService.Role == UserRole.KnowledgeAdmin ||
+               CurrentUserService.UserId == _document.OwnerId;
+    }
+
+    private bool CanDelete()
+    {
+        if (_document == null) return false;
+        return CurrentUserService.Role == UserRole.SystemAdmin ||
+               CurrentUserService.Role == UserRole.KnowledgeAdmin ||
+               CurrentUserService.UserId == _document.OwnerId;
+    }
+
+    private async Task SaveMetadata()
+    {
+        if (string.IsNullOrWhiteSpace(_editTitle))
+        {
+            _updateError = "Название документа не может быть пустым";
+            return;
+        }
+
+        _isSaving = true;
+        _updateError = null;
+        _updateSuccess = null;
+
+        try
+        {
+            var dto = new DocumentUpdateDto
+            {
+                Title = _editTitle.Trim(),
+                Description = _editDescription.Trim(),
+                Category = string.IsNullOrWhiteSpace(_editCategory) ? "Общие" : _editCategory.Trim(),
+                AccessLevel = _editAccessLevel
+            };
+
+            var userId = CurrentUserService.UserId ?? Guid.Empty;
+            var userRole = CurrentUserService.Role ?? UserRole.User;
+
+            var result = await DocumentService.UpdateDocumentMetadataAsync(Id, dto, userId, userRole);
+            if (result != null)
+            {
+                _document = result;
+                _isEditing = false;
+                _updateSuccess = "Метаданные документа успешно обновлены и зафиксированы в аудите";
+            }
+            else
+            {
+                _updateError = "Не удалось обновить документ. Возможно, недостаточно прав.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _updateError = ex.Message;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task ExecuteDelete()
+    {
+        if (_document == null) return;
+
+        var userId = CurrentUserService.UserId ?? Guid.Empty;
+        var userRole = CurrentUserService.Role ?? UserRole.User;
+
+        var success = await DocumentService.DeleteDocumentAsync(_document.Id, userId, userRole);
+        if (success)
+        {
+            NavigationManager.NavigateTo("documents");
+        }
+        else
+        {
+            _errorMessage = "Не удалось удалить документ. Проверьте ваши права доступа.";
+            _showDeleteConfirm = false;
+        }
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} Б";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} КБ";
+        return $"{bytes / (1024.0 * 1024.0):F2} МБ";
+    }
+}

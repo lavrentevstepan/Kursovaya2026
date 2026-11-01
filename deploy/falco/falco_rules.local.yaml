@@ -1,0 +1,39 @@
+- list: shell_binaries
+  items: [bash, sh, zsh, ksh, csh, tcsh, dash, ash, busybox, pwsh, powershell, cmd]
+
+- list: allowed_outbound_ports
+  items: [80, 443, 53, 1433, 9200, 11434]
+
+- macro: skb_dotnet_process
+  condition: (proc.name in (dotnet, SecureKnowledgeBase.Web, w3wp) or proc.pname in (dotnet, SecureKnowledgeBase.Web, w3wp))
+
+- macro: skb_sensitive_files
+  condition: (fd.name startswith "/app/app_data" or fd.name endswith ".db" or fd.name endswith ".db-wal" or fd.name endswith ".key")
+
+- rule: Spawn Shell in SecureKnowledgeBase Container
+  desc: Detects shell process execution initiated by ASP.NET Core process
+  condition: evt.type = execve and evt.dir = < and proc.name in (shell_binaries) and (proc.pname in (dotnet, SecureKnowledgeBase.Web) or proc.aname[1] in (dotnet, SecureKnowledgeBase.Web))
+  output: Critical: Shell spawned by ASP.NET Core web process (user=%user.name proc=%proc.name cmdline=%proc.cmdline parent=%proc.pname pcmdline=%proc.pcmdline container_id=%container.id container_name=%container.name image=%container.image.repository)
+  priority: CRITICAL
+  tags: [application, rce, container, mitre_execution]
+
+- rule: Unauthorized Access to SecureKnowledgeBase Storage
+  desc: Detects read attempts to database or uploaded documents by unauthorized processes
+  condition: evt.type in (open, openat, openat2) and evt.is_open_read = true and skb_sensitive_files and not proc.name in (dotnet, SecureKnowledgeBase.Web)
+  output: Warning: Unauthorized process attempted reading application data (user=%user.name proc=%proc.name cmdline=%proc.cmdline file=%fd.name container_id=%container.id)
+  priority: WARNING
+  tags: [filesystem, data_leak, mitre_collection]
+
+- rule: Unexpected Outbound Network Connection
+  desc: Detects outbound network connections to suspicious remote ports
+  condition: evt.type = connect and evt.dir = < and (fd.typechar = 4 or fd.typechar = 6) and not fd.rport in (allowed_outbound_ports) and skb_dotnet_process
+  output: Notice: Outbound network connection to unexpected remote port (user=%user.name proc=%proc.name connection=%fd.name rport=%fd.rport rip=%fd.rip container_id=%container.id)
+  priority: NOTICE
+  tags: [network, c2, mitre_command_and_control]
+
+- rule: System Binary Directory Write Attempt
+  desc: Detects unauthorized write operations into system binary or configuration directories
+  condition: evt.type in (open, openat, openat2, create) and evt.is_open_write = true and (fd.name startswith "/bin" or fd.name startswith "/sbin" or fd.name startswith "/usr/bin" or fd.name startswith "/usr/sbin" or fd.name startswith "/etc")
+  output: Critical: File modification attempted in system directory (user=%user.name proc=%proc.name file=%fd.name cmdline=%proc.cmdline container_id=%container.id)
+  priority: CRITICAL
+  tags: [filesystem, persistence, mitre_persistence]

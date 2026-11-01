@@ -1,0 +1,324 @@
+@page "/assistant"
+@rendermode InteractiveServer
+@inject IRagService RagService
+@inject CurrentUserService CurrentUserService
+@inject IDocumentService DocumentService
+
+<PageTitle>ИИ-Ассистент (RAG) | SecureKnowledgeBase</PageTitle>
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+    <div>
+        <h1 class="page-title">Интеллектуальный RAG-Ассистент</h1>
+        <p class="page-subtitle">Вопросно-ответная система по базе знаний с контролем прав доступа, цитированием источников и защитой от галлюцинаций</p>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <span class="badge @(CurrentUserService.MaxAllowedAccessLevel == AccessLevel.Confidential ? "badge-systemadmin" : CurrentUserService.MaxAllowedAccessLevel == AccessLevel.Restricted ? "badge-securityauditor" : "badge-user")" style="font-size: 13px; padding: 6px 12px;">
+            Допуск: @CurrentUserService.MaxAllowedAccessLevel
+        </span>
+        @if (_llmStatus != null)
+        {
+            <span class="badge" style="background: @(_llmStatus.IsEndpointReachable ? "rgba(16, 185, 129, 0.15)" : "rgba(245, 158, 11, 0.15)"); color: @(_llmStatus.IsEndpointReachable ? "#10b981" : "#f59e0b"); border: 1px solid @(_llmStatus.IsEndpointReachable ? "#10b981" : "#f59e0b"); font-size: 12px; padding: 6px 12px;">
+                @(_llmStatus.IsEndpointReachable ? $"Ollama: {_llmStatus.Model}" : "Извлекательный режим (Offline LLM)")
+            </span>
+        }
+    </div>
+</div>
+
+<div class="section-box" style="margin-bottom: 20px; padding: 14px 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+            <label style="font-size: 13px; font-weight: 600; color: #94a3b8;">Режим генерации:</label>
+            <div style="display: flex; gap: 8px;">
+                <button type="button"
+                        class="btn @(_selectedMode == RagMode.Auto ? "btn-primary" : "btn-secondary")"
+                        style="padding: 6px 14px; font-size: 13px;"
+                        @onclick="() => _selectedMode = RagMode.Auto">
+                    Авто (LLM + Fallback)
+                </button>
+                <button type="button"
+                        class="btn @(_selectedMode == RagMode.ExtractiveOnly ? "btn-primary" : "btn-secondary")"
+                        style="padding: 6px 14px; font-size: 13px;"
+                        @onclick="() => _selectedMode = RagMode.ExtractiveOnly">
+                    Только извлечение
+                </button>
+                <button type="button"
+                        class="btn @(_selectedMode == RagMode.LlmOnly ? "btn-primary" : "btn-secondary")"
+                        style="padding: 6px 14px; font-size: 13px;"
+                        @onclick="() => _selectedMode = RagMode.LlmOnly">
+                    Локальная LLM
+                </button>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" @onclick="ClearChat">
+                Очистить диалог
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="section-box" style="min-height: 480px; display: flex; flex-direction: column; justify-content: space-between; padding: 0; overflow: hidden; margin-bottom: 24px;">
+    <div style="padding: 24px; flex-grow: 1; overflow-y: auto; max-height: 600px; display: flex; flex-direction: column; gap: 20px;">
+        @if (_messages.Count == 0)
+        {
+            <div style="text-align: center; margin: auto; max-width: 600px; padding: 40px 20px;">
+                <div style="font-size: 48px; margin-bottom: 16px;">🤖</div>
+                <h3 style="font-size: 20px; font-weight: 700; color: #f8fafc; margin-bottom: 8px;">Корпоративный ассистент готов к работе</h3>
+                <p style="color: #94a3b8; font-size: 14px; margin-bottom: 24px; line-height: 1.6;">
+                    Задайте вопрос по регламентам, стандартам или политикам безопасности. Ответ формируется строго на основе доступных вам документов с точными ссылками на первоисточники.
+                </p>
+
+                <div style="display: flex; flex-direction: column; gap: 10px; text-align: left;">
+                    <div style="font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Контрольные примеры вопросов:</div>
+                    <button class="btn btn-secondary" style="text-align: left; padding: 10px 14px; font-size: 13px;" @onclick="@(() => SelectSuggestedQuestion("Какие минимальные требования к длине и сложности паролей?"))">
+                        🔒 «Какие минимальные требования к длине и сложности паролей?»
+                    </button>
+                    <button class="btn btn-secondary" style="text-align: left; padding: 10px 14px; font-size: 13px;" @onclick="@(() => SelectSuggestedQuestion("Как осуществляется реагирование на инциденты информационной безопасности?"))">
+                        🚨 «Как осуществляется реагирование на инциденты информационной безопасности?»
+                    </button>
+                    <button class="btn btn-secondary" style="text-align: left; padding: 10px 14px; font-size: 13px;" @onclick="@(() => SelectSuggestedQuestion("Каковы правила доступа к конфиденциальным серверам баз данных?"))">
+                        🖥️ «Каковы правила доступа к конфиденциальным серверам баз данных?»
+                    </button>
+                    <button class="btn btn-secondary" style="text-align: left; padding: 10px 14px; font-size: 13px;" @onclick="@(() => SelectSuggestedQuestion("Какова процедура предоставления удаленного доступа через VPN?"))">
+                        🌐 «Какова процедура предоставления удаленного доступа через VPN?»
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            @foreach (var msg in _messages)
+            {
+                if (msg.IsUser)
+                {
+                    <div style="align-self: flex-end; max-width: 80%; background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); color: #ffffff; padding: 14px 18px; border-radius: 14px 14px 2px 14px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);">
+                        <div style="font-size: 11px; opacity: 0.8; margin-bottom: 4px; display: flex; justify-content: space-between; gap: 12px;">
+                            <span>@(msg.SenderName ?? "Пользователь")</span>
+                            <span>@msg.Timestamp.ToString("HH:mm:ss")</span>
+                        </div>
+                        <div style="font-size: 14px; line-height: 1.5; white-space: pre-wrap;">@msg.Text</div>
+                    </div>
+                }
+                else
+                {
+                    <div style="align-self: flex-start; max-width: 88%; background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(148, 163, 184, 0.2); color: #f8fafc; padding: 18px 20px; border-radius: 14px 14px 14px 2px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 16px;">🤖</span>
+                                <span style="font-size: 13px; font-weight: 700; color: #38bdf8;">RAG-Ассистент</span>
+                                <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-size: 11px;">
+                                    @msg.ModelUsed
+                                </span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 11px; color: #94a3b8;">
+                                    ⏱️ @msg.ElapsedMilliseconds мс
+                                </span>
+                                <span style="font-size: 11px; color: #64748b;">
+                                    @msg.Timestamp.ToString("HH:mm:ss")
+                                </span>
+                            </div>
+                        </div>
+
+                        <div style="font-size: 14px; line-height: 1.65; white-space: pre-wrap; color: #e2e8f0; margin-bottom: 16px;">
+                            @msg.Text
+                        </div>
+
+                        @if (msg.Sources != null && msg.Sources.Count > 0)
+                        {
+                            <div style="border-top: 1px solid rgba(148, 163, 184, 0.15); padding-top: 14px; margin-top: 10px;">
+                                <div style="font-size: 12px; font-weight: 700; color: #94a3b8; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                                    <span>📚 Использованные первоисточники (@msg.Sources.Count):</span>
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px;">
+                                    @foreach (var src in msg.Sources)
+                                    {
+                                        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 8px; padding: 10px 12px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; margin-bottom: 4px;">
+                                                <span style="font-size: 12px; font-weight: 700; color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                                    📄 @src.DocumentTitle
+                                                </span>
+                                                <span class="badge @(src.AccessLevel == AccessLevel.Confidential ? "badge-systemadmin" : src.AccessLevel == AccessLevel.Restricted ? "badge-securityauditor" : "badge-user")" style="font-size: 10px; padding: 2px 6px;">
+                                                    @src.AccessLevel
+                                                </span>
+                                            </div>
+                                            <div style="font-size: 11px; color: #38bdf8; margin-bottom: 6px;">
+                                                Раздел: @src.SectionHeader
+                                            </div>
+                                            <div style="font-size: 11px; color: #94a3b8; line-height: 1.4; max-height: 60px; overflow: hidden; text-overflow: ellipsis;">
+                                                @src.Snippet
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+
+            @if (_isThinking)
+            {
+                <div style="align-self: flex-start; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.2); color: #94a3b8; padding: 14px 20px; border-radius: 14px 14px 14px 2px; display: flex; align-items: center; gap: 12px;">
+                    <div class="spinner" style="width: 18px; height: 18px; border-width: 2px;"></div>
+                    <span style="font-size: 13px;">Поиск по фрагментам и синтез ответа...</span>
+                </div>
+            }
+        }
+    </div>
+
+    <div style="background: rgba(15, 23, 42, 0.85); border-top: 1px solid rgba(148, 163, 184, 0.15); padding: 16px 20px;">
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="alert alert-danger" style="margin-bottom: 12px; font-size: 13px; padding: 8px 12px;">
+                @_errorMessage
+            </div>
+        }
+        <div style="display: flex; gap: 10px; align-items: flex-end;">
+            <div style="flex-grow: 1;">
+                <textarea class="form-control"
+                          rows="2"
+                          style="resize: none; font-size: 14px; padding: 10px 14px; border-radius: 8px;"
+                          placeholder="Задайте вопрос по регламентам информационной безопасности (Enter — отправить, Shift+Enter — новая строка)..."
+                          @bind="_inputQuestion"
+                          @bind:event="oninput"
+                          @onkeydown="HandleKeyDown"
+                          disabled="@_isThinking"></textarea>
+            </div>
+            <button class="btn btn-primary"
+                    style="padding: 12px 22px; height: 58px; font-weight: 600; display: flex; align-items: center; gap: 8px;"
+                    @onclick="SendQuestionAsync"
+                    disabled="@(_isThinking || string.IsNullOrWhiteSpace(_inputQuestion))">
+                @if (_isThinking)
+                {
+                    <div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>
+                    <span>Анализ...</span>
+                }
+                else
+                {
+                    <span>Спросить</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                }
+            </button>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; color: #64748b;">
+            <span>🛡️ Разграничение доступа активно: фрагменты выше вашего допуска не попадают в контекст ответа.</span>
+            <span>Локальный запуск (Windows 11, без внешних API)</span>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _inputQuestion = string.Empty;
+    private RagMode _selectedMode = RagMode.Auto;
+    private bool _isThinking = false;
+    private string? _errorMessage;
+    private LlmStatusDto? _llmStatus;
+
+    private readonly List<ChatMessage> _messages = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _llmStatus = await RagService.GetLlmStatusAsync();
+        }
+        catch
+        {
+            _llmStatus = new LlmStatusDto
+            {
+                IsEnabledInConfig = false,
+                IsEndpointReachable = false,
+                StatusMessage = "Извлекательный режим по умолчанию"
+            };
+        }
+    }
+
+    private void SelectSuggestedQuestion(string question)
+    {
+        _inputQuestion = question;
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SendQuestionAsync();
+        }
+    }
+
+    private async Task SendQuestionAsync()
+    {
+        var question = _inputQuestion?.Trim();
+        if (string.IsNullOrWhiteSpace(question) || _isThinking)
+        {
+            return;
+        }
+
+        _errorMessage = null;
+        _messages.Add(new ChatMessage
+        {
+            IsUser = true,
+            SenderName = CurrentUserService.Username ?? "Пользователь",
+            Text = question,
+            Timestamp = DateTime.Now
+        });
+
+        _inputQuestion = string.Empty;
+        _isThinking = true;
+
+        try
+        {
+            var request = new RagQueryRequestDto
+            {
+                Question = question,
+                Mode = _selectedMode,
+                MaxSources = 3
+            };
+
+            var userId = CurrentUserService.UserId ?? Guid.Empty;
+            var username = CurrentUserService.Username ?? "user";
+            var accessLevel = CurrentUserService.MaxAllowedAccessLevel;
+
+            var result = await RagService.AskAsync(request, userId, username, accessLevel);
+
+            _messages.Add(new ChatMessage
+            {
+                IsUser = false,
+                Text = result.Answer,
+                ModelUsed = result.ModelName,
+                ElapsedMilliseconds = result.ElapsedMilliseconds,
+                Sources = result.Sources,
+                Timestamp = DateTime.Now
+            });
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Ошибка при обработке запроса: {ex.Message}";
+        }
+        finally
+        {
+            _isThinking = false;
+        }
+    }
+
+    private void ClearChat()
+    {
+        _messages.Clear();
+        _errorMessage = null;
+    }
+
+    private class ChatMessage
+    {
+        public bool IsUser { get; set; }
+        public string? SenderName { get; set; }
+        public string Text { get; set; } = string.Empty;
+        public string ModelUsed { get; set; } = string.Empty;
+        public long ElapsedMilliseconds { get; set; }
+        public List<RagSourceItemDto>? Sources { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+}

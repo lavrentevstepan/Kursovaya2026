@@ -1,0 +1,45 @@
+﻿{
+    "scanner":  "tfsec / Trivy-IaC v1.28.14",
+    "scanDate":  "2026-09-13T13:40:15Z",
+    "target":  "C:\\Users\\Claudwal\\Documents\\MISIS\\sem3\\security\\kurs\\sample_data\\insecure_terraform_demo",
+    "filesScanned":  1,
+    "results":  [
+                    {
+                        "ruleId":  "SKB-TF-001",
+                        "ruleCode":  "aws-vpc-no-public-ingress-sgr",
+                        "ruleName":  "Public Ingress to Management Port",
+                        "severity":  "CRITICAL",
+                        "cwe":  "CWE-284",
+                        "file":  "bad_infra.tf",
+                        "fullPath":  "C:\\Users\\Claudwal\\Documents\\MISIS\\sem3\\security\\kurs\\sample_data\\insecure_terraform_demo\\bad_infra.tf",
+                        "line":  1,
+                        "description":  "Security group rule allows unrestricted public ingress (0.0.0.0/0) to administrative SSH port 22.",
+                        "resolution":  "Restrict CIDR to specific trusted administrative bastion IP."
+                    },
+                    {
+                        "ruleId":  "SKB-TF-002",
+                        "ruleCode":  "aws-ebs-enable-volume-encryption",
+                        "ruleName":  "Unencrypted Block Storage Volume",
+                        "severity":  "HIGH",
+                        "cwe":  "CWE-311",
+                        "file":  "bad_infra.tf",
+                        "fullPath":  "C:\\Users\\Claudwal\\Documents\\MISIS\\sem3\\security\\kurs\\sample_data\\insecure_terraform_demo\\bad_infra.tf",
+                        "line":  1,
+                        "description":  "Storage volume encryption at-rest is explicitly disabled.",
+                        "resolution":  "Set encrypted = true on all persistent storage volumes."
+                    },
+                    {
+                        "ruleId":  "SKB-TF-003",
+                        "ruleCode":  "aws-rds-no-public-db-access",
+                        "ruleName":  "Publicly Accessible Database Instance",
+                        "severity":  "CRITICAL",
+                        "cwe":  "CWE-284",
+                        "file":  "bad_infra.tf",
+                        "fullPath":  "C:\\Users\\Claudwal\\Documents\\MISIS\\sem3\\security\\kurs\\sample_data\\insecure_terraform_demo\\bad_infra.tf",
+                        "line":  1,
+                        "description":  "Database instance is configured to be publicly accessible from the internet.",
+                        "resolution":  "Set publicly_accessible = false and isolate within private subnet."
+                    }
+                ],
+    "qualityGate":  "FAILED"
+}

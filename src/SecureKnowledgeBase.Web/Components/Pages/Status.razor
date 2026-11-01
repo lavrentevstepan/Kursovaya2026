@@ -1,0 +1,115 @@
+@page "/status"
+@rendermode InteractiveServer
+@inject ISystemStatusService StatusService
+
+<PageTitle>Состояние сервисов | SecureKnowledgeBase</PageTitle>
+
+<div class="page-header">
+    <h1 class="page-title">Диагностика и состояние компонентов</h1>
+    <p class="page-subtitle">Мониторинг работоспособности локальных сервисов и адаптеров системы</p>
+</div>
+
+@if (_status == null)
+{
+    <div class="section-box">
+        <p>Загрузка диагностических данных...</p>
+    </div>
+}
+else
+{
+    <div class="section-box">
+        <h2 class="section-title">Сводка сервисов</h2>
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Компонент</th>
+                    <th>Состояние</th>
+                    <th>Тип</th>
+                    <th>Назначение</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var svc in _status.Services)
+                {
+                    <tr>
+                        <td><strong>@svc.Key</strong></td>
+                        <td>
+                            <span class="badge @(svc.Value.Contains("Online") || svc.Value.Contains("SQLite") || svc.Value.Contains("Local") || svc.Value.Contains("Disabled") ? "badge-sec" : "badge-db")">
+                                @svc.Value
+                            </span>
+                        </td>
+                        <td>Инфраструктурный адаптер</td>
+                        <td>Локальная среда разработки (Windows 11)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section-box">
+        <h2 class="section-title">Сопоставление архитектуры: локальный режим vs целевой стенд</h2>
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Подсистема</th>
+                    <th>Локальный учебный адаптер</th>
+                    <th>Целевая архитектура курсовой</th>
+                    <th>Обоснование адаптации</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>База данных</strong></td>
+                    <td>SQLite (EF Core)</td>
+                    <td>Microsoft SQL Server</td>
+                    <td>Экономия RAM (8 ГБ), отсутствие фонового сервиса</td>
+                </tr>
+                <tr>
+                    <td><strong>Поисковый движок</strong></td>
+                    <td>SQLite FTS5 / Взвешенный поиск</td>
+                    <td>Elasticsearch</td>
+                    <td>Работа без JVM и тяжелого контейнера</td>
+                </tr>
+                <tr>
+                    <td><strong>Аутентификация</strong></td>
+                    <td>Локальная (PBKDF2/SHA256)</td>
+                    <td>Azure Active Directory (OIDC)</td>
+                    <td>Автономность без подключения к облаку</td>
+                </tr>
+                <tr>
+                    <td><strong>Языковая модель</strong></td>
+                    <td>Extractive / Local Ollama (Qwen 2.5)</td>
+                    <td>Выделенный LLM-сервер / Qwen 2.5 1.5B</td>
+                    <td>Выполнение на слабом CPU без перегрузки</td>
+                </tr>
+                <tr>
+                    <td><strong>Хранилище файлов</strong></td>
+                    <td>Локальная директория вне web-root</td>
+                    <td>Изолированное сетевое хранилище</td>
+                    <td>Защита от прямого доступа по URL</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section-box">
+        <h2 class="section-title">Прямая проверка Health Endpoint</h2>
+        <p style="margin-bottom: 12px; color: var(--text-secondary);">
+            Вы можете проверить статус сервиса через прямой HTTP-запрос по адресу: <code>/health</code>
+        </p>
+        <div class="code-block">
+            GET /health HTTP/1.1
+            Host: localhost:5000
+            Accept: application/json
+        </div>
+    </div>
+}
+
+@code {
+    private SystemStatusDto? _status;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _status = await StatusService.GetStatusAsync();
+    }
+}

@@ -1,0 +1,36 @@
+﻿{
+    "reportSchema":  "1.1",
+    "scanInfo":  {
+                     "engineVersion":  "8.4.0",
+                     "dataSource":  "National Vulnerability Database (NVD) \u0026 GitHub Advisory",
+                     "scanDate":  "2026-09-13T15:21:06Z",
+                     "target":  "C:\\Users\\Claudwal\\Documents\\MISIS\\sem3\\security\\kurs\\sample_data\\vulnerable_dependency_demo"
+                 },
+    "dependencies":  [
+                         {
+                             "fileName":  "Newtonsoft.Json.9.0.1.nupkg",
+                             "filePath":  "VulnerableDemo.csproj -\u003e Newtonsoft.Json",
+                             "description":  "NuGet package Newtonsoft.Json version 9.0.1",
+                             "packages":  [
+                                              {
+                                                  "id":  "pkg:nuget/Newtonsoft.Json@9.0.1",
+                                                  "confidence":  "HIGHEST"
+                                              }
+                                          ],
+                             "vulnerabilities":  [
+                                                     {
+                                                         "name":  "CVE-2024-21907",
+                                                         "cvssv3":  {
+                                                                        "baseScore":  7.5,
+                                                                        "baseSeverity":  "HIGH"
+                                                                    },
+                                                         "cwes":  [
+                                                                      "CWE-400"
+                                                                  ],
+                                                         "description":  "Newtonsoft.Json prior to version 13.0.1 is vulnerable to Denial of Service via deeply nested JSON parsing causing StackOverflowException.",
+                                                         "solution":  "Upgrade to Newtonsoft.Json 13.0.3 or higher."
+                                                     }
+                                                 ]
+                         }
+                     ]
+}

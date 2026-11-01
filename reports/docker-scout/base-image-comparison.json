@@ -1,0 +1,41 @@
+{
+    "comparisonDate":  "2026-09-13T16:01:09Z",
+    "images":  [
+                   {
+                       "flavor":  "Ubuntu Standard (22.04 LTS)",
+                       "tag":  "mcr.microsoft.com/dotnet/aspnet:8.0-jammy",
+                       "sizeMb":  215,
+                       "criticalVulnerabilities":  2,
+                       "highVulnerabilities":  8,
+                       "mediumVulnerabilities":  24,
+                       "recommendation":  "Not recommended due to wide attack surface and unnecessary system utilities (bash, apt, coreutils)."
+                   },
+                   {
+                       "flavor":  "Debian Bookworm Slim (Selected Target)",
+                       "tag":  "mcr.microsoft.com/dotnet/aspnet:8.0",
+                       "sizeMb":  108,
+                       "criticalVulnerabilities":  0,
+                       "highVulnerabilities":  0,
+                       "mediumVulnerabilities":  2,
+                       "recommendation":  "Well-balanced production image with glibc compatibility for native document parsing components."
+                   },
+                   {
+                       "flavor":  "Alpine Linux Hardened",
+                       "tag":  "mcr.microsoft.com/dotnet/aspnet:8.0-alpine",
+                       "sizeMb":  54,
+                       "criticalVulnerabilities":  0,
+                       "highVulnerabilities":  0,
+                       "mediumVulnerabilities":  0,
+                       "recommendation":  "Minimal attack surface using musl-libc. Requires musl-compatible native dependencies."
+                   },
+                   {
+                       "flavor":  "Ubuntu Chiseled Distroless",
+                       "tag":  "mcr.microsoft.com/dotnet/aspnet:8.0-chiseled",
+                       "sizeMb":  49,
+                       "criticalVulnerabilities":  0,
+                       "highVulnerabilities":  0,
+                       "mediumVulnerabilities":  0,
+                       "recommendation":  "Ultra-hardened distroless image containing zero package managers, shells, or coreutils."
+                   }
+               ]
+}

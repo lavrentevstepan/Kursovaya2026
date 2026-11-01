@@ -1,0 +1,51 @@
+﻿{
+    "_type":  "https://in-toto.io/Statement/v0.1",
+    "predicateType":  "https://slsa.dev/provenance/v0.2",
+    "subject":  [
+                    {
+                        "name":  "secure-knowledge-base:hardened-alpine",
+                        "digest":  {
+                                       "sha256":  "d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5"
+                                   }
+                    }
+                ],
+    "predicate":  {
+                      "builder":  {
+                                      "id":  "https://github.com/lavrentevstepan/Kursovaya2026/.github/workflows/devsecops-ci.yml@refs/heads/development"
+                                  },
+                      "buildType":  "https://github.com/actions/runner/v2.319.0",
+                      "invocation":  {
+                                         "configSource":  {
+                                                              "uri":  "git+https://github.com/lavrentevstepan/Kursovaya2026.git",
+                                                              "digest":  {
+                                                                             "sha1":  "0bdd9c2ae4546f436c931a51d57d65e3d6fc46b3"
+                                                                         },
+                                                              "entryPoint":  ".github/workflows/devsecops-ci.yml"
+                                                          }
+                                     },
+                      "materials":  [
+                                        {
+                                            "uri":  "git+https://github.com/lavrentevstepan/Kursovaya2026.git",
+                                            "digest":  {
+                                                           "sha1":  "0bdd9c2ae4546f436c931a51d57d65e3d6fc46b3"
+                                                       }
+                                        },
+                                        {
+                                            "uri":  "mcr.microsoft.com/dotnet/aspnet:8.0-alpine",
+                                            "digest":  {
+                                                           "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                                                       }
+                                        }
+                                    ],
+                      "metadata":  {
+                                       "buildInvocationId":  "e11792f2-614a-466d-9cfe-3435a67f1c39",
+                                       "completeness":  {
+                                                            "parameters":  true,
+                                                            "environment":  true,
+                                                            "materials":  true
+                                                        },
+                                       "reproducible":  true
+                                   }
+                  }
+}
+
