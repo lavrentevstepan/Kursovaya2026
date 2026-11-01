@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup .NET SDK 8.0
         uses: actions/setup-dotnet@v4
@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run Lightweight SAST Scanner
         shell: pwsh
@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run tfsec Security Audit
         shell: pwsh
@@ -72,7 +72,7 @@ jobs:
     needs: [build-and-test]
     steps:
       - name: Checkout Source Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Build Docker Container Image
         run: docker build -t secure-knowledge-base:${{ github.sha }} .
@@ -99,7 +99,7 @@ jobs:
     needs: [sast-and-sca, iac-security, container-and-supply-chain]
     steps:
       - name: Checkout Source Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download All Pipeline Artifacts
         uses: actions/download-artifact@v4
