@@ -13,7 +13,7 @@ COPY src/ src/
 WORKDIR /src/src/SecureKnowledgeBase.Web
 RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
 ENV ASPNETCORE_URLS=http://+:5000
